@@ -107,9 +107,15 @@ private:
 };
 
 vector<int> nms(const vector<vector<float>>& dets, float thresh) {
-    vector<int> keep;
-    vector<float> x1, y1, x2, y2, scores;
+    vector<int> keep; // 保存最终保留的框的索引
+    vector<float> x1, y1, x2, y2, scores; // 分别保存每个框的左上角和右下角坐标，以及分数
+
+    // 将输入的检测结果分解成坐标和分数
     for (const auto& det : dets) {
+        if (det.size() < 5) {
+            // 如果 det 的大小小于 5，跳过这个检测结果
+            continue;
+        }
         x1.push_back(det[0]);
         y1.push_back(det[1]);
         x2.push_back(det[2]);
@@ -117,31 +123,38 @@ vector<int> nms(const vector<vector<float>>& dets, float thresh) {
         scores.push_back(det[4]);
     }
 
+    // 创建一个包含所有索引的向量，并按分数从大到小排序
     vector<int> order(scores.size());
-    iota(order.begin(), order.end(), 0);
+    iota(order.begin(), order.end(), 0); // 填充order为0, 1, 2, ..., scores.size()-1
     sort(order.begin(), order.end(), [&scores](int a, int b) { return scores[a] > scores[b]; });
 
+    // 进行非极大值抑制
     while (!order.empty()) {
-        int i = order[0];
-        keep.push_back(i);
-        vector<int> inds;
+        int i = order[0]; // 取出当前分数最高的框的索引
+        keep.push_back(i); // 将该框的索引加入到keep中
+        vector<int> inds; // 用于保存剩下的框的索引
         for (size_t j = 1; j < order.size(); ++j) {
             int k = order[j];
+            // 计算两个框的交集部分的坐标
             float xx1 = max(x1[i], x1[k]);
             float yy1 = max(y1[i], y1[k]);
             float xx2 = min(x2[i], x2[k]);
             float yy2 = min(y2[i], y2[k]);
+            // 计算交集的宽和高
             float w = max(0.0f, xx2 - xx1);
             float h = max(0.0f, yy2 - yy1);
+            // 计算交集面积
             float inter = w * h;
+            // 计算交并比（IoU）
             float iou = inter / ((x2[i] - x1[i]) * (y2[i] - y1[i]) + (x2[k] - x1[k]) * (y2[k] - y1[k]) - inter);
+            // 如果交并比小于阈值，则保留该框
             if (iou <= thresh) {
                 inds.push_back(k);
             }
         }
-        order = inds;
+        order = inds; // 更新order，去掉已经处理的框
     }
-    return keep;
+    return keep; // 返回保留的框的索引
 }
 
 vector<vector<float>> xywh2xyxy(const vector<vector<float>>& x) {
@@ -241,7 +254,8 @@ vector<vector<float>> filter_box(const vector<vector<float>>& org_box, float con
         curr_cls_box = xywh2xyxy(curr_cls_box);
         // 对当前类别的框进行非极大值抑制，获取保留的框的索引
         vector<int> curr_out_box_indices = nms(curr_cls_box, iou_thres);
-        printf("curr_out_box_indices.size() = %d\n top_conf = %f\n", curr_out_box_indices.size(), top_conf);
+        /*printf("curr_out_box_indices.size() = %d\n top_conf = %f\n", curr_out_box_indices.size(), top_conf);*/
+        cout << "当前类别的框数量: " << curr_cls_box.size() << "  最高置信度: " << top_conf << endl;
         // 根据索引将保留的框加入输出
         for (int idx : curr_out_box_indices) {
             output.push_back(curr_cls_box[idx]);
@@ -262,7 +276,7 @@ void process_image(Mat& image, YOLOV5& model, bool showImage, int screen_width, 
         result.push_back(box);
     }
 
-    vector<vector<float>> outbox = filter_box(result, 0.7, 0.5);
+    vector<vector<float>> outbox = filter_box(result, 0.01, 0.1);
 
     if (outbox.empty()) {
         return;
