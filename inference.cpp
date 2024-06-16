@@ -56,55 +56,29 @@ char* YOLO_V8::PreProcess(cv::Mat& iImg, std::vector<int> iImgSize, cv::Mat& oIm
         // 将灰度图像转换为RGB颜色空间
         cv::cvtColor(iImg, oImg, cv::COLOR_GRAY2RGB);
     }
+    // 如果图像宽度大于或等于高度
+    if (iImg.cols >= iImg.rows)
+    {
+        // 计算缩放比例
+        resizeScales = iImg.cols / (float)iImgSize.at(0);
+        // 按比例调整图像大小
+        cv::resize(oImg, oImg, cv::Size(iImgSize.at(0), int(iImg.rows / resizeScales)));
+    }
+    else
+    {
+        // 计算缩放比例
+        resizeScales = iImg.rows / (float)iImgSize.at(0);
+        // 按比例调整图像大小
+        cv::resize(oImg, oImg, cv::Size(int(iImg.cols / resizeScales), iImgSize.at(1)));
+    }
+    // 创建一个指定大小的全零矩阵（黑色图像）
+    cv::Mat tempImg = cv::Mat::zeros(iImgSize.at(0), iImgSize.at(1), CV_8UC3);
+    // 将调整大小后的图像复制到全零矩阵的左上角
+    oImg.copyTo(tempImg(cv::Rect(0, 0, oImg.cols, oImg.rows)));
+    // 将输出图像设置为新的全零矩阵
+    oImg = tempImg;
+   
 
-    // 根据模型类型进行不同的预处理操作
-    switch (modelType)
-    {
-        // 处理YOLO检测和姿态识别模型
-    case YOLO_DETECT_V8:
-    case YOLO_POSE:
-    case YOLO_DETECT_V8_HALF:
-    case YOLO_POSE_V8_HALF: // LetterBox
-    {
-        // 如果图像宽度大于或等于高度
-        if (iImg.cols >= iImg.rows)
-        {
-            // 计算缩放比例
-            resizeScales = iImg.cols / (float)iImgSize.at(0);
-            // 按比例调整图像大小
-            cv::resize(oImg, oImg, cv::Size(iImgSize.at(0), int(iImg.rows / resizeScales)));
-        }
-        else
-        {
-            // 计算缩放比例
-            resizeScales = iImg.rows / (float)iImgSize.at(0);
-            // 按比例调整图像大小
-            cv::resize(oImg, oImg, cv::Size(int(iImg.cols / resizeScales), iImgSize.at(1)));
-        }
-        // 创建一个指定大小的全零矩阵（黑色图像）
-        cv::Mat tempImg = cv::Mat::zeros(iImgSize.at(0), iImgSize.at(1), CV_8UC3);
-        // 将调整大小后的图像复制到全零矩阵的左上角
-        oImg.copyTo(tempImg(cv::Rect(0, 0, oImg.cols, oImg.rows)));
-        // 将输出图像设置为新的全零矩阵
-        oImg = tempImg;
-        break;
-    }
-    // 处理YOLO分类模型
-    case YOLO_CLS: // CenterCrop
-    {
-        // 获取图像的高度和宽度
-        int h = iImg.rows;
-        int w = iImg.cols;
-        // 取高度和宽度的最小值
-        int m = min(h, w);
-        // 计算裁剪区域的顶部和左侧偏移量
-        int top = (h - m) / 2;
-        int left = (w - m) / 2;
-        // 对中心裁剪后的图像进行缩放
-        cv::resize(oImg(cv::Rect(left, top, m, m)), oImg, cv::Size(iImgSize.at(0), iImgSize.at(1)));
-        break;
-    }
-    }
     // 返回成功状态
     return RET_OK;
 }
@@ -303,66 +277,60 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
     case YOLO_DETECT_V8:
     case YOLO_DETECT_V8_HALF:
     {
-        // 获取输出张量的维度信息
-        int strideNum = outputNodeDims[1]; // 8400
-        int signalResultNum = outputNodeDims[2]; // 84
+        int strideNum = outputNodeDims[2]; // 获取输出节点维度的第三个值，表示步幅数量
+        int signalResultNum = outputNodeDims[1]; // 获取输出节点维度的第二个值，表示信号结果数量
+        std::vector<int> class_ids; // 用于存储类别ID的向量
+        std::vector<float> confidences; // 用于存储置信度的向量
+        std::vector<cv::Rect> boxes; // 用于存储检测到的矩形框的向量
 
-        // 定义存储检测结果的容器
-        std::vector<int> class_ids;
-        std::vector<float> confidences;
-        std::vector<cv::Rect> boxes;
-        cv::Mat rawData;
-
-        if (modelType == YOLO_DETECT_V8)
-        {
-            // FP32
-            rawData = cv::Mat(strideNum, signalResultNum, CV_32F, output);
+        cv::Mat rawData; // 用于存储原始数据的矩阵
+        if (modelType == 1) {
+            // 如果模型类型为1，则使用FP32格式
+            rawData = cv::Mat(signalResultNum, strideNum, CV_32F, output);
         }
-        else
-        {
-            // FP16
-            rawData = cv::Mat(strideNum, signalResultNum, CV_16F, output);
+        else {
+            // 否则使用FP16格式，并将其转换为FP32格式
+            rawData = cv::Mat(signalResultNum, strideNum, CV_16F, output);
             rawData.convertTo(rawData, CV_32F);
         }
+        rawData = rawData.t(); // 转置矩阵
+        float* data = (float*)rawData.data; // 获取矩阵数据的指针
 
-        // 转换行数据
-        // Note:
-        // ultralytics 为 yolov8 模型的输出添加了转置操作，使得 yolov8/v5/v7 具有相同的输出形状
-        // https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.pt
-        // rowData = rowData.t();
+  
+        for (int i = 0; i < strideNum; ++i) {
 
-        float* data = (float*)rawData.data;
+            float* classesScores = data + 4; // 获取类别得分的起始位置
+            cv::Mat scores(1, this->classes.size(), CV_32FC1, classesScores); // 创建包含类别得分的矩阵
 
-        // 遍历每个检测结果
-        for (int i = 0; i < strideNum; ++i)
-        {
-            float* classesScores = data + 4;
-            cv::Mat scores(1, this->classes.size(), CV_32FC1, classesScores);
-            cv::Point class_id;
-            double maxClassScore;
+            cv::Point class_id; // 用于存储类别ID的点
+            double maxClassScore; // 用于存储最大类别得分
 
-            // 获取具有最大置信度的类别
-            cv::minMaxLoc(scores, 0, &maxClassScore, 0, &class_id);
+            cv::minMaxLoc(scores, 0, &maxClassScore, 0, &class_id); // 查找最大类别得分及其对应的类别ID
 
-            if (maxClassScore > rectConfidenceThreshold)
-            {
-                confidences.push_back(maxClassScore);
-                class_ids.push_back(class_id.x);
+            if (maxClassScore > rectConfidenceThreshold) {
 
-                // 获取检测框的坐标和大小
+                // 如果最大类别得分超过置信度阈值，则保存该结果
+                confidences.push_back(maxClassScore); 
+                class_ids.push_back(class_id.x); 
+
+                // 获取边框的中心坐标和宽高
                 float x = data[0];
                 float y = data[1];
                 float w = data[2];
                 float h = data[3];
 
+                // 计算边框的左上角坐标
                 int left = int((x - 0.5 * w) * resizeScales);
                 int top = int((y - 0.5 * h) * resizeScales);
+
+                // 计算边框的宽和高
                 int width = int(w * resizeScales);
                 int height = int(h * resizeScales);
 
-                boxes.push_back(cv::Rect(left, top, width, height));
+                // 存储边框
+                boxes.emplace_back(left, top, width, height);
             }
-            data += signalResultNum;
+            data += signalResultNum; // 移动到下一个结果
         }
 
         // 执行非极大值抑制（NMS）
