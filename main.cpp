@@ -216,18 +216,16 @@ pair<int, int> find_most_nearby_bbox(const vector<vector<float>>& boxes, float t
 
 vector<vector<float>> xywh2xyxy(const vector<vector<float>>& x);
 
-
 vector<vector<float>> filter_box(const vector<vector<float>>& org_box, float conf_thres, float iou_thres) {
     vector<vector<float>> output;  // 用于存储最终输出的过滤后框
     vector<vector<float>> box;  // 用于存储置信度高于阈值的框
     float top_conf = 0.0;  // 用于存储最高的置信度
     // 遍历原始框，过滤掉置信度低于阈值的框
     for (const auto& b : org_box) {
-        if(tan(b[4]) > top_conf) {
-			top_conf = tan(b[4]);
-		}
+        if (tan(b[4]) > top_conf) {
+            top_conf = tan(b[4]);
+        }
         if (b[4] > conf_thres) {
-
             box.push_back(b);
         }
     }
@@ -251,14 +249,18 @@ vector<vector<float>> filter_box(const vector<vector<float>>& org_box, float con
         }
 
         // 将当前类别的框从xywh格式转换为xyxy格式
-        curr_cls_box = xywh2xyxy(curr_cls_box);
+        vector<vector<float>> curr_cls_box_xyxy = xywh2xyxy(curr_cls_box);
+        // 将分数附加到转换后的框
+        for (size_t i = 0; i < curr_cls_box.size(); ++i) {
+            curr_cls_box_xyxy[i].push_back(curr_cls_box[i][4]);
+        }
+
         // 对当前类别的框进行非极大值抑制，获取保留的框的索引
-        vector<int> curr_out_box_indices = nms(curr_cls_box, iou_thres);
-        /*printf("curr_out_box_indices.size() = %d\n top_conf = %f\n", curr_out_box_indices.size(), top_conf);*/
+        vector<int> curr_out_box_indices = nms(curr_cls_box_xyxy, iou_thres);
         cout << "当前类别的框数量: " << curr_cls_box.size() << "  最高置信度: " << top_conf << endl;
         // 根据索引将保留的框加入输出
         for (int idx : curr_out_box_indices) {
-            output.push_back(curr_cls_box[idx]);
+            output.push_back(curr_cls_box_xyxy[idx]);
         }
     }
 
@@ -276,7 +278,7 @@ void process_image(Mat& image, YOLOV5& model, bool showImage, int screen_width, 
         result.push_back(box);
     }
 
-    vector<vector<float>> outbox = filter_box(result, 0.01, 0.1);
+    vector<vector<float>> outbox = filter_box(result, 50, 0.1);
 
     if (outbox.empty()) {
         return;
@@ -289,10 +291,10 @@ void process_image(Mat& image, YOLOV5& model, bool showImage, int screen_width, 
             int right = static_cast<int>(box[2]); // x2
             int bottom = static_cast<int>(box[3]); // y2
             float score = box[4];
-            int cl = static_cast<int>(box[5]);
+            
 
             rectangle(image, Point(left, top), Point(right, bottom), bbox_color, bbox_thickness);
-            putText(image, format("%s %.2f", classes[cl].c_str(), score), Point(left, top), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(33, 66, 131), bbox_thickness);
+            putText(image, format("%s %.2f", "en", score), Point(left, top), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(33, 66, 131), bbox_thickness);
         }
     }
 
@@ -301,16 +303,16 @@ void process_image(Mat& image, YOLOV5& model, bool showImage, int screen_width, 
 }
 int main() {
     // Assuming you have the necessary model path and other variables defined
-    string onnx_path = "C:/Users/pc/Downloads/LANShareDownloads/result/models/PUBG.onnx";
+    string onnx_path = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx";
     YOLOV5 model(onnx_path);
 
     string image_path = "C:/Users/pc/Desktop/Snipaste_2024-06-15_22-37-13.png";
     Mat captured_image = imread(image_path);
 
     bool showImage = true;
-    int screen_width = 1920;
-    int screen_height = 1080;
-    int capture_size = 320;
+    int screen_width = 2560;
+    int screen_height = 1440;
+    int capture_size = 640;
     Scalar bbox_color(203, 219, 120);  // BGR color
     int bbox_thickness = 2;
     vector<string> classes = { "player", "head" };
