@@ -71,8 +71,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\Develop\onnx\onnxruntime-win-x64-1.15.1\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Develop\onnx\onnxruntime-win-x64-1.15.1\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Develop\onnx\onnxruntime-win-x64-gpu-1.15.1\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Develop\onnx\onnxruntime-win-x64-gpu-1.15.1\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
