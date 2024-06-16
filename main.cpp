@@ -153,8 +153,10 @@ void DetectTest()
     DL_INIT_PARAM params;
     params.rectConfidenceThreshold = 0.5; // 设置矩形框置信度阈值
     params.iouThreshold = 0.5; // 设置 IOU 阈值
-    params.modelPath = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx"; // 设置模型路径
-    params.imgSize = { 640, 640 }; // 设置输入图像的大小
+    //params.modelPath = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx"; // 设置模型路径
+    params.modelPath = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx"; // 设置模型路径
+    //params.modelPath = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx"; // 设置模型路径
+    params.imgSize = { INPUT_SIZE, INPUT_SIZE }; // 设置输入图像的大小
 
 #ifdef USE_CUDA
     // 启用 CUDA

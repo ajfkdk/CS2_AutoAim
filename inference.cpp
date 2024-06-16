@@ -200,7 +200,6 @@ char* YOLO_V8::RunSession(cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
 
     // 调用预处理函数对输入图像进行预处理
     PreProcess(iImg, imgSize, processedImg);
-
     // 根据模型类型进行不同的处理
     if (modelType < 4)
     {
@@ -277,41 +276,35 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
     case YOLO_DETECT_V8:
     case YOLO_DETECT_V8_HALF:
     {
-        int strideNum = outputNodeDims[2]; // 获取输出节点维度的第三个值，表示步幅数量
-        int signalResultNum = outputNodeDims[1]; // 获取输出节点维度的第二个值，表示信号结果数量
+        int numDetections = outputNodeDims[1]; // 获取输出节点维度的第二个值，表示检测框的数量
+        int numAttributes = outputNodeDims[2]; // 获取输出节点维度的第三个值，表示每个检测框的属性数量（6）
+
         std::vector<int> class_ids; // 用于存储类别ID的向量
         std::vector<float> confidences; // 用于存储置信度的向量
         std::vector<cv::Rect> boxes; // 用于存储检测到的矩形框的向量
 
         cv::Mat rawData; // 用于存储原始数据的矩阵
-        if (modelType == 1) {
-            // 如果模型类型为1，则使用FP32格式
-            rawData = cv::Mat(signalResultNum, strideNum, CV_32F, output);
+        if (modelType == YOLO_DETECT_V8) {
+            // 如果模型类型为YOLO_DETECT_V8，则使用FP32格式
+            rawData = cv::Mat(numDetections, numAttributes, CV_32F, output);
         }
         else {
             // 否则使用FP16格式，并将其转换为FP32格式
-            rawData = cv::Mat(signalResultNum, strideNum, CV_16F, output);
+            rawData = cv::Mat(numDetections, numAttributes, CV_16F, output);
             rawData.convertTo(rawData, CV_32F);
         }
-        rawData = rawData.t(); // 转置矩阵
+
         float* data = (float*)rawData.data; // 获取矩阵数据的指针
 
   
-        for (int i = 0; i < strideNum; ++i) {
+        for (int i = 0; i < numDetections; ++i) {
+            float confidence = data[4]; // 获取置信度
+            if (confidence > rectConfidenceThreshold) {
+                // 如果置信度超过阈值，则处理该检测框
+                confidences.push_back(confidence);
 
-            float* classesScores = data + 4; // 获取类别得分的起始位置
-            cv::Mat scores(1, this->classes.size(), CV_32FC1, classesScores); // 创建包含类别得分的矩阵
-
-            cv::Point class_id; // 用于存储类别ID的点
-            double maxClassScore; // 用于存储最大类别得分
-
-            cv::minMaxLoc(scores, 0, &maxClassScore, 0, &class_id); // 查找最大类别得分及其对应的类别ID
-
-            if (maxClassScore > rectConfidenceThreshold) {
-
-                // 如果最大类别得分超过置信度阈值，则保存该结果
-                confidences.push_back(maxClassScore); 
-                class_ids.push_back(class_id.x); 
+                int class_id = static_cast<int>(data[5]); // 获取类别ID
+                class_ids.push_back(class_id);
 
                 // 获取边框的中心坐标和宽高
                 float x = data[0];
@@ -330,7 +323,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
                 // 存储边框
                 boxes.emplace_back(left, top, width, height);
             }
-            data += signalResultNum; // 移动到下一个结果
+            data += numAttributes; // 移动到下一个检测框
         }
 
         // 执行非极大值抑制（NMS）

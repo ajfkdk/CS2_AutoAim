@@ -18,6 +18,8 @@
 #include <cuda_fp16.h>
 #endif
 
+// 模型输入的维度
+#define INPUT_SIZE 320
 
 enum MODEL_TYPE
 {
@@ -37,7 +39,7 @@ typedef struct _DL_INIT_PARAM
 {
     std::string modelPath;
     MODEL_TYPE modelType = YOLO_DETECT_V8;
-    std::vector<int> imgSize = { 640, 640 };
+    std::vector<int> imgSize = { INPUT_SIZE, INPUT_SIZE };
     float rectConfidenceThreshold = 0.6;
     float iouThreshold = 0.5;
     int	keyPointsNum = 2;//Note:kpt number for pose
