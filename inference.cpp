@@ -1,7 +1,7 @@
 #include "inference.h"
 #include <regex>
 
-#define benchmark
+//#define benchmark
 #define USE_CUDA
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 YOLO_V8::YOLO_V8() {
@@ -192,7 +192,7 @@ char* YOLO_V8::RunSession(cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
     // 记录开始时间用于基准测试
     clock_t starttime_1 = clock();
 #endif // benchmark
-
+    clock_t starttime_1 = clock();
     // 定义返回值并初始化为成功状态
     char* Ret = RET_OK;
 

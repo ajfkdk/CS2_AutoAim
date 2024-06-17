@@ -137,7 +137,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AIInferenceModule.cpp" />
-    <ClCompile Include="capture_process.cpp" />
+    <ClCompile Include="ScreanshotModule.cpp" />
     <ClCompile Include="inference.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -146,7 +146,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AIInferenceModule.h" />
-    <ClInclude Include="capture_process.h" />
+    <ClInclude Include="ScreanshotModule.h" />
     <ClInclude Include="inference.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,7 +1,6 @@
-// AIInferenceModule.cpp
 #include "AIInferenceModule.h"
 #include <iostream>
-
+#define CUDA
 AIInferenceModule::AIInferenceModule() {
     yoloDetector = new YOLO_V8();
     initializeDetector();
@@ -38,8 +37,7 @@ std::pair<cv::Mat, std::vector<DL_RESULT>> AIInferenceModule::processImage(const
 
     // »æÖÆ¼ì²â½á¹û
     for (auto& re : results) {
-        cv::RNG rng(cv::getTickCount());
-        cv::Scalar color(rng.uniform(0, 256), rng.uniform(0, 256), rng.uniform(0, 256));
+        cv::Scalar color(156, 219, 250);
         cv::rectangle(outputImage, re.box, color, 3);
         float confidence = floor(100 * re.confidence) / 100;
         std::string label = yoloDetector->classes[re.classId] + " " +

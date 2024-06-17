@@ -21,7 +21,7 @@
     <ClCompile Include="inference.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="capture_process.cpp">
+    <ClCompile Include="ScreanshotModule.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="AIInferenceModule.cpp">
@@ -37,7 +37,7 @@
     <ClInclude Include="inference.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="capture_process.h">
+    <ClInclude Include="ScreanshotModule.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="AIInferenceModule.h">
