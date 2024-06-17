@@ -1,7 +1,7 @@
 #pragma once
 
 #define    RET_OK nullptr
-
+#define    USE_CUDA
 #ifdef _WIN32
 #include <Windows.h>
 #include <direct.h>
@@ -43,7 +43,7 @@ typedef struct _DL_INIT_PARAM
     float rectConfidenceThreshold = 0.6;
     float iouThreshold = 0.5;
     int	keyPointsNum = 2;//Note:kpt number for pose
-    bool cudaEnable = false;
+    bool cudaEnable = true;
     int logSeverityLevel = 3;
     int intraOpNumThreads = 1;
 } DL_INIT_PARAM;

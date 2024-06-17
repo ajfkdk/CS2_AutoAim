@@ -21,6 +21,12 @@
     <ClCompile Include="inference.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="capture_process.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AIInferenceModule.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\PycharmProjects\pythonProject\yolov8n.onnx">
@@ -29,6 +35,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inference.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="capture_process.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AIInferenceModule.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

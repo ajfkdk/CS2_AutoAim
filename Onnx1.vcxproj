@@ -71,8 +71,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\Develop\onnx\onnxruntime-win-x64-gpu-1.15.1\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Develop\onnx\onnxruntime-win-x64-gpu-1.15.1\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\include;D:\Develop\onnx\onnxruntime-win-x64-gpu-1.13.1\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64;D:\Develop\onnx\onnxruntime-win-x64-gpu-1.13.1\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -136,6 +136,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AIInferenceModule.cpp" />
+    <ClCompile Include="capture_process.cpp" />
     <ClCompile Include="inference.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -143,6 +145,8 @@
     <None Include="..\..\..\PycharmProjects\pythonProject\yolov8n.onnx" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AIInferenceModule.h" />
+    <ClInclude Include="capture_process.h" />
     <ClInclude Include="inference.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
