@@ -34,7 +34,7 @@ std::vector<DL_RESULT> AIInferenceModule::processImage(const cv::Mat& image) {
     std::vector<DL_RESULT> results;
 
     yoloDetector->RunSession(outputImage, results);
-
+#ifdef IMG_SHOW
     // 设置窗口名称
     const std::string windowName = "processed image";
 
@@ -69,6 +69,6 @@ std::vector<DL_RESULT> AIInferenceModule::processImage(const cv::Mat& image) {
     // 逻辑模块显示图像并处理位置数据为业务数据
     cv::imshow(windowName, outputImage);
     cv::waitKey(1);
-
+#endif // IMG_SHOW
     return results;
 }
