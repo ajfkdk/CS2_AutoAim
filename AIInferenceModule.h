@@ -7,7 +7,7 @@ class AIInferenceModule {
 public:
     AIInferenceModule();
     ~AIInferenceModule();
-    std::pair<cv::Mat, std::vector<DL_RESULT>> processImage(const cv::Mat& image);
+    std::vector<DL_RESULT> AIInferenceModule::processImage(const cv::Mat& image);
 
 private:
     YOLO_V8* yoloDetector;

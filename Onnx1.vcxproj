@@ -140,6 +140,7 @@
     <ClCompile Include="ScreanshotModule.cpp" />
     <ClCompile Include="inference.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="UDPSender.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\PycharmProjects\pythonProject\yolov8n.onnx" />
@@ -148,6 +149,7 @@
     <ClInclude Include="AIInferenceModule.h" />
     <ClInclude Include="ScreanshotModule.h" />
     <ClInclude Include="inference.h" />
+    <ClInclude Include="UDPSender.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

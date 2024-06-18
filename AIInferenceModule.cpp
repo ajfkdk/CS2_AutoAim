@@ -29,12 +29,16 @@ void AIInferenceModule::initializeDetector() {
     yoloDetector->CreateSession(params);
 }
 
-std::pair<cv::Mat, std::vector<DL_RESULT>> AIInferenceModule::processImage(const cv::Mat& image) {
+std::vector<DL_RESULT> AIInferenceModule::processImage(const cv::Mat& image) {
     cv::Mat outputImage = image.clone();
     std::vector<DL_RESULT> results;
 
     yoloDetector->RunSession(outputImage, results);
 
+    // 设置窗口名称
+    const std::string windowName = "processed image";
+
+    
     // 绘制检测结果
     for (auto& re : results) {
         cv::Scalar color(156, 219, 250);
@@ -59,6 +63,12 @@ std::pair<cv::Mat, std::vector<DL_RESULT>> AIInferenceModule::processImage(const
             2
         );
     }
+    // 设置窗口置顶
+    cv::namedWindow(windowName, cv::WINDOW_NORMAL);
+    cv::setWindowProperty(windowName, cv::WND_PROP_TOPMOST, 1);
+    // 逻辑模块显示图像并处理位置数据为业务数据
+    cv::imshow(windowName, outputImage);
+    cv::waitKey(1);
 
-    return std::make_pair(outputImage, results);
+    return results;
 }
