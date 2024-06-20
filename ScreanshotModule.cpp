@@ -58,6 +58,8 @@ RECT get_center_region() {
 }
 
 cv::Mat capture_center_screen() {
+    
+
     RECT rect = get_center_region();
     return capture_region(rect.left, rect.top, rect.right, rect.bottom);
 }

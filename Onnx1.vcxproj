@@ -137,6 +137,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AIInferenceModule.cpp" />
+    <ClCompile Include="MouseController.cpp" />
     <ClCompile Include="ScreanshotModule.cpp" />
     <ClCompile Include="inference.cpp" />
     <ClCompile Include="main.cpp" />
@@ -147,8 +148,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AIInferenceModule.h" />
+    <ClInclude Include="MouseController.h" />
     <ClInclude Include="ScreanshotModule.h" />
     <ClInclude Include="inference.h" />
+    <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="UDPSender.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

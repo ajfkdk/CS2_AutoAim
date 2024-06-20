@@ -52,7 +52,7 @@ void UDPSender::sendMousePosition() {
 
                 boost::system::error_code ignored_error;
                 socket.send_to(boost::asio::buffer(message, sizeof(message)), endpoint, 0, ignored_error);
-
+             
                 new_data_available.store(false);
             }
 

@@ -30,6 +30,9 @@
     <ClCompile Include="UDPSender.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="MouseController.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\PycharmProjects\pythonProject\yolov8n.onnx">
@@ -47,6 +50,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="UDPSender.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MouseController.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreadPool.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
