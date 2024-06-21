@@ -26,6 +26,20 @@ std::atomic<bool> newDataAvailable(false);
 // 用于记录侧键状态
 std::atomic<bool> isXButton1Pressed{ false };
 std::atomic<bool> isXButton2Pressed{ false };
+// 连续发射子弹数量
+int bullet_count = 1;
+
+//推理图片的双缓冲
+cv::Mat bufferImage1;
+cv::Mat bufferImage2;
+cv::Mat* writeImageBuffer = &bufferImage1;
+cv::Mat* readImageBuffer = &bufferImage2;
+std::atomic<bool> imageBufferReady(false);
+
+// 发射状态
+std::atomic<bool> isFiring(false);
+// 上一次点射结束时间
+std::chrono::time_point<std::chrono::steady_clock> lastBurstEndTime;
 
 const int screen_width = 1920;
 const int screen_height = 1080;
@@ -53,7 +67,10 @@ void screenshotThread() {
     SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
 
     while (running) {
-        globalImageData = capture_center_screen();
+        cv::Mat newImage = capture_center_screen();
+        *writeImageBuffer = newImage;
+        imageBufferReady.store(true, std::memory_order_release);
+        std::swap(writeImageBuffer, readImageBuffer);
     }
 }
 
@@ -62,18 +79,16 @@ void aiInferenceThread(AIInferenceModule& aiInferenceModule) {
     SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
 
     while (running) {
-        if (!globalImageData.empty()) {
-            auto start = std::chrono::high_resolution_clock::now();
-            auto results = aiInferenceModule.processImage(globalImageData);
-            writeBuffer->assign(results.begin(), results.end());
-            newDataAvailable.store(true, std::memory_order_release);
-            std::swap(writeBuffer, readBuffer);
+        if (imageBufferReady.load(std::memory_order_acquire)) {
+            cv::Mat imageToProcess = readImageBuffer->clone();
+            imageBufferReady.store(false, std::memory_order_release);
 
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - start;
-            //转换为毫秒
-            std::cout << "AI 推理时间: " << elapsed.count() * 1000 << "ms" << std::endl;
-
+            if (!imageToProcess.empty()) {
+                auto results = aiInferenceModule.processImage(imageToProcess);
+                writeBuffer->assign(results.begin(), results.end());
+                newDataAvailable.store(true, std::memory_order_release);
+                std::swap(writeBuffer, readBuffer);
+            }
         }
     }
 }
@@ -182,44 +197,53 @@ int find_and_calculate_vector_x(const std::vector<DL_RESULT>& boxes, float aim_s
     return move_x;
 }
 
+void burstFire() {
+    for (int i = 0; i < bullet_count; ++i) {
+        std::cout<<"===>"<<std::endl;
+        MouseController::click();
+        std::this_thread::sleep_for(std::chrono::milliseconds(150)); // 每发子弹之间稍微停顿
+    }
+    //std::this_thread::sleep_for(std::chrono::milliseconds(300)); // 点射结束之后的停顿
+    isFiring.store(false, std::memory_order_release);
+}
+
+bool isAllowedMove(int move_x, int move_y) {
+     // 判断move_x是否在-1到1之间
+		return (move_x >= -1 && move_x <= 1);
+}
+
 // 线程函数
 void processXButton1() {
     while (isXButton1Pressed.load(std::memory_order_acquire)) {
-        
-
         if (newDataAvailable.load(std::memory_order_acquire)) {
             newDataAvailable.store(false, std::memory_order_release);
             if (readBuffer && !readBuffer->empty()) {
-               
-                auto [move_x, move_y] = find_and_calculate_vector(*readBuffer, aim_strength, 0.2);
-                /*MouseController::moveRelative(move_x, move_y);*/
-                udpSender.updatePosition(move_x, move_y);
-                std::cout << "侧键1动作: Move vector: (" << move_x << ", " << move_y << ")" << std::endl;
+                int move_x = find_and_calculate_vector_x(*readBuffer, 2);
+                udpSender.updatePosition(move_x, 0);
+                if (isAllowedMove(move_x,0)) {
+
+                    // 如果没有在点射中并且距离上一次点射结束已经超过 500 毫秒，则启动新的点射
+                    if (!isFiring.load(std::memory_order_acquire)) {
+                        isFiring.store(true, std::memory_order_release);
+                        std::thread(burstFire).detach();
+                    }
+
+                }
+
             }
         }
-
-
-       
     }
 }
 
 void processXButton2() {
     while (isXButton2Pressed.load(std::memory_order_acquire)) {
-       
-
         if (newDataAvailable.load(std::memory_order_acquire)) {
             newDataAvailable.store(false, std::memory_order_release);
-
             if (readBuffer && !readBuffer->empty()) {
-                
                 int move_x = find_and_calculate_vector_x(*readBuffer, aim_strength);
-                /*MouseController::moveRelative(move_x, 0);*/
                 udpSender.updatePosition(move_x, 0);
-                
             }
         }
-        
-
     }
 }
 
@@ -231,17 +255,13 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
             if (HIWORD(mouseInfo->mouseData) & XBUTTON1) {
                 std::cout << "侧键1按下" << std::endl;
                 if (!isXButton1Pressed.exchange(true, std::memory_order_acq_rel)) {
-                    std::thread t(processXButton1);
-                    SetThreadPriority(t.native_handle(), THREAD_PRIORITY_HIGHEST);
-                    t.detach();
+                    pool.enqueue(processXButton1);
                 }
             }
             else if (HIWORD(mouseInfo->mouseData) & XBUTTON2) {
                 std::cout << "侧键2按下" << std::endl;
                 if (!isXButton2Pressed.exchange(true, std::memory_order_acq_rel)) {
-                    std::thread t(processXButton2);
-                    SetThreadPriority(t.native_handle(), THREAD_PRIORITY_HIGHEST);
-                    t.detach();
+                    pool.enqueue(processXButton2);
                 }
             }
         }
@@ -270,49 +290,41 @@ void setProcessPriority() {
     }
 }
 
+
 int main() {
     // 设置进程优先级
-    if (!SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS)) {
-        std::cerr << "Failed to set process priority!" << std::endl;
-        return 1;
-    }
-    // 设置GPU优先
-     setProcessPriority();
+    setProcessPriority();
 
+    // 创建截图线程并加入线程池
+    pool.enqueue(screenshotThread);
+
+    // 创建 AI 推理模块
+    AIInferenceModule aiInferenceModule;
+
+    // 创建 AI 推理线程并加入线程池
+    pool.enqueue([&aiInferenceModule] { aiInferenceThread(aiInferenceModule); });
 
     udpSender.start();
-     
+
     // 设置鼠标钩子
-    mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookProc, NULL, 0);
+    mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookProc, nullptr, 0);
     if (!mouseHook) {
         std::cerr << "Failed to install mouse hook!" << std::endl;
         return 1;
     }
-    MouseController::moveRelative(10, 10);
-    AIInferenceModule aiInferenceModule;
-    std::thread screenshot(screenshotThread);
-    SetThreadPriority(screenshot.native_handle(), THREAD_PRIORITY_HIGHEST);
-    std::thread aiInference(aiInferenceThread, std::ref(aiInferenceModule));
-    SetThreadPriority(aiInference.native_handle(), THREAD_PRIORITY_HIGHEST);
-
-
-
-  
 
     // 消息循环
     MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0)) {
+    while (GetMessage(&msg, nullptr, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
 
-    // 移除鼠标钩子
+    // 卸载鼠标钩子
     UnhookWindowsHookEx(mouseHook);
 
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-    screenshot.join();
-    aiInference.join();
-    udpSender.stop();
+    // 停止所有线程
+    running = false;
 
     return 0;
 }

@@ -40,7 +40,7 @@ typedef struct _DL_INIT_PARAM
     std::string modelPath;
     MODEL_TYPE modelType = YOLO_DETECT_V8;
     std::vector<int> imgSize = { INPUT_SIZE, INPUT_SIZE };
-    float rectConfidenceThreshold = 0.6;
+    float rectConfidenceThreshold = 0.8;
     float iouThreshold = 0.5;
     int	keyPointsNum = 2;//Note:kpt number for pose
     bool cudaEnable = true;
