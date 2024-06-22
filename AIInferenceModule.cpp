@@ -1,7 +1,7 @@
 #include "AIInferenceModule.h"
 #include <iostream>
 #define CUDA
-//#define IMG_SHOW
+#define IMG_SHOW
 AIInferenceModule::AIInferenceModule() {
     yoloDetector = new YOLO_V8();
     initializeDetector();

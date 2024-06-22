@@ -2,6 +2,7 @@
 #include "MouseController.h"
 #include "ScreanshotModule.h"
 #include "AIInferenceModule.h"
+#include "GUIModule.h"
 #include "ThreadPool.h"
 #include <winsock2.h>
 #include <windows.h>
@@ -16,7 +17,8 @@
 cv::Mat globalImageData;
 cv::Mat globalProcessedImage;
 std::vector<DL_RESULT> globalPositionData;
-bool running = true;
+// 标志程序运行状态
+std::atomic<bool> running(true);
 // 用于交换读写缓冲区
 std::vector<DL_RESULT> buffer1;
 std::vector<DL_RESULT> buffer2;
@@ -53,6 +55,7 @@ ThreadPool pool(std::thread::hardware_concurrency());
 
 //声明一个鼠标钩子
 HHOOK mouseHook;
+HHOOK keyboardHook;
 LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam);
 // 配置UDP发送器
 std::string udp_ip = "192.168.8.7"; // 目标设备的IP地址
@@ -63,16 +66,25 @@ UDPSender udpSender(udp_ip, udp_port);
 // 自瞄强度，可以根据需要调整
 float aim_strength = 1;
 
+//主线程ID用于发送WM_QUIT消息
+DWORD mainThreadId;
+
+GUIModule guiModule(running);
+
+
 // 截图线程
 void screenshotThread() {
     SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
-
+    std::cout << "Screenshot thread running: " << running.load() << std::endl;
     while (running) {
         cv::Mat newImage = capture_center_screen();
         *writeImageBuffer = newImage;
         imageBufferReady.store(true, std::memory_order_release);
         std::swap(writeImageBuffer, readImageBuffer);
     }
+    //关闭getMessage
+    PostThreadMessage(mainThreadId, WM_QUIT, 0, 0);  // 发送 WM_QUIT 消息
+    std::cout << "Screenshot thread running: " << running.load() << std::endl;
 }
 
 // AI 推理线程
@@ -92,6 +104,9 @@ void aiInferenceThread(AIInferenceModule& aiInferenceModule) {
             }
         }
     }
+    std::cout << "AiInference thread running: " << running.load() << std::endl;
+    
+   
 }
 
 // 寻找并计算移动向量
@@ -200,7 +215,6 @@ int find_and_calculate_vector_x(const std::vector<DL_RESULT>& boxes, float aim_s
 
 void burstFire() {
     for (int i = 0; i < bullet_count; ++i) {
-        std::cout<<"➶➶➶➶"<<std::endl;
         udpSender.sendLeftClick();
         std::this_thread::sleep_for(std::chrono::milliseconds(150)); // 每发子弹之间稍微停顿
     }
@@ -276,7 +290,20 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
     }
     return CallNextHookEx(mouseHook, nCode, wParam, lParam);
 }
-
+LRESULT CALLBACK KeyboardHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode >= 0 && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
+        KBDLLHOOKSTRUCT* kbdStruct = (KBDLLHOOKSTRUCT*)lParam;
+        switch (kbdStruct->vkCode) {
+        case VK_PRIOR: // PageUp key
+            guiModule.showWindow();
+            break;
+        case VK_NEXT: // PageDown key
+            guiModule.hideWindow();
+            break;
+        }
+    }
+    return CallNextHookEx(keyboardHook, nCode, wParam, lParam);
+}
 
 void setProcessPriority() {
     if (!SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS)) {
@@ -288,8 +315,30 @@ void setProcessPriority() {
     }
 }
 
+void setHooks() {
+    mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookProc, nullptr, 0);
+    if (!mouseHook) {
+        std::cerr << "Failed to install mouse hook!" << std::endl;
+    }
+
+    keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardHookProc, nullptr, 0);
+    if (!keyboardHook) {
+        std::cerr << "Failed to install keyboard hook!" << std::endl;
+    }
+}
+
+void removeHooks() {
+    if (mouseHook) {
+        UnhookWindowsHookEx(mouseHook);
+    }
+    if (keyboardHook) {
+        UnhookWindowsHookEx(keyboardHook);
+    }
+}
 
 int main() {
+    // 获取主线程 ID
+    mainThreadId = GetCurrentThreadId();
     // 设置进程优先级
     setProcessPriority();
 
@@ -302,27 +351,30 @@ int main() {
     // 创建 AI 推理线程并加入线程池
     pool.enqueue([&aiInferenceModule] { aiInferenceThread(aiInferenceModule); });
 
+
+    guiModule.start();
     udpSender.start();
 
-    // 设置鼠标钩子
-    mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookProc, nullptr, 0);
-    if (!mouseHook) {
-        std::cerr << "Failed to install mouse hook!" << std::endl;
-        return 1;
-    }
+    // 设置键鼠钩子
+    setHooks();
 
     // 消息循环
     MSG msg;
-    while (GetMessage(&msg, nullptr, 0, 0)) {
+    while (running && GetMessage(&msg, nullptr, 0, 0)) {
+        std::cout<< "111 Main thread running: " << running.load() << std::endl;
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
+    std::cout << "Main thread running: " << running.load() << std::endl;
 
-    // 卸载鼠标钩子
-    UnhookWindowsHookEx(mouseHook);
+    // 移除钩子
+    removeHooks();
 
     // 停止所有线程
     running = false;
+
+    // 等待线程池中的所有任务完成
+    pool.~ThreadPool();
 
     return 0;
 }
