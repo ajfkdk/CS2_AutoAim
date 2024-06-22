@@ -1,16 +1,17 @@
-﻿#include <winsock2.h>
-#include <windows.h>
+﻿#include "UDPSender.h"
+#include "MouseController.h"
 #include "ScreanshotModule.h"
 #include "AIInferenceModule.h"
+#include "ThreadPool.h"
+#include <winsock2.h>
+#include <windows.h>
 #include <iostream>
 #include <thread>
 #include <chrono>
 #include <vector>
 #include <cmath>
 #include <algorithm>
-#include "UDPSender.h"
-#include "MouseController.h"
-#include "ThreadPool.h"
+
 
 cv::Mat globalImageData;
 cv::Mat globalProcessedImage;
@@ -55,7 +56,7 @@ HHOOK mouseHook;
 LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam);
 // 配置UDP发送器
 std::string udp_ip = "192.168.8.7"; // 目标设备的IP地址
-unsigned short udp_port = 12345; // 目标设备的端口
+unsigned short udp_port = 21115; // 目标设备的端口
 
 // 将 udpSender 定义为全局变量
 UDPSender udpSender(udp_ip, udp_port);
@@ -199,18 +200,14 @@ int find_and_calculate_vector_x(const std::vector<DL_RESULT>& boxes, float aim_s
 
 void burstFire() {
     for (int i = 0; i < bullet_count; ++i) {
-        std::cout<<"===>"<<std::endl;
-        MouseController::click();
+        std::cout<<"➶➶➶➶"<<std::endl;
+        udpSender.sendLeftClick();
         std::this_thread::sleep_for(std::chrono::milliseconds(150)); // 每发子弹之间稍微停顿
     }
     //std::this_thread::sleep_for(std::chrono::milliseconds(300)); // 点射结束之后的停顿
     isFiring.store(false, std::memory_order_release);
 }
 
-bool isAllowedMove(int move_x, int move_y) {
-     // 判断move_x是否在-1到1之间
-		return (move_x >= -1 && move_x <= 1);
-}
 
 // 线程函数
 void processXButton1() {
@@ -218,10 +215,11 @@ void processXButton1() {
         if (newDataAvailable.load(std::memory_order_acquire)) {
             newDataAvailable.store(false, std::memory_order_release);
             if (readBuffer && !readBuffer->empty()) {
-                int move_x = find_and_calculate_vector_x(*readBuffer, 2);
+                int move_x = find_and_calculate_vector_x(*readBuffer, aim_strength);
+                std::cout<< "move_x: " << move_x << std::endl;
                 udpSender.updatePosition(move_x, 0);
-                if (isAllowedMove(move_x,0)) {
-
+                if (move_x >= -1 && move_x <= 1) {
+                      
                     // 如果没有在点射中并且距离上一次点射结束已经超过 500 毫秒，则启动新的点射
                     if (!isFiring.load(std::memory_order_acquire)) {
                         isFiring.store(true, std::memory_order_release);

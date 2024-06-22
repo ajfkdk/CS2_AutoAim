@@ -52,11 +52,19 @@ void UDPSender::sendMousePosition() {
 
                 boost::system::error_code ignored_error;
                 socket.send_to(boost::asio::buffer(message, sizeof(message)), endpoint, 0, ignored_error);
-             
+
                 new_data_available.store(false);
             }
-
-
         }
+        // 添加一个短暂的休眠，防止CPU占用过高
+        std::this_thread::sleep_for(std::chrono::milliseconds(3));
     }
+}
+
+void UDPSender::sendLeftClick() {
+    char message[1];
+    message[0] = 0x03; // 左键消息类型
+
+    boost::system::error_code ignored_error;
+    socket.send_to(boost::asio::buffer(message, sizeof(message)), endpoint, 0, ignored_error);
 }

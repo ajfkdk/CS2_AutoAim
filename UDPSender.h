@@ -1,10 +1,9 @@
-#ifndef UDP_SENDER_H
-#define UDP_SENDER_H
+#ifndef UDPSENDER_H
+#define UDPSENDER_H
 
 #include <boost/asio.hpp>
-#include <thread>
 #include <atomic>
-#include <string>
+#include <thread>
 
 class UDPSender {
 public:
@@ -14,20 +13,21 @@ public:
     void start();
     void stop();
     void updatePosition(int x, int y);
+    void sendLeftClick();
 
 private:
     void sendMousePosition();
-
-    std::atomic<int> move_x{ 0 };
-    std::atomic<int> move_y{ 0 };
-    std::atomic<bool> new_data_available{ false };
-    std::atomic<bool> running{ false };
 
     boost::asio::io_context io_context;
     boost::asio::ip::udp::socket socket;
     boost::asio::ip::udp::endpoint endpoint;
 
+    std::atomic<bool> running{ false };
+    std::atomic<int> move_x{ 0 };
+    std::atomic<int> move_y{ 0 };
+    std::atomic<bool> new_data_available{ false };
+
     std::thread sender_thread;
 };
 
-#endif // UDP_SENDER_H
+#endif // UDPSENDER_H
