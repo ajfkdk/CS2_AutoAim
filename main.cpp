@@ -346,11 +346,11 @@ int main() {
     pool.enqueue([&aiInferenceModule] { aiInferenceThread(aiInferenceModule); });
 
 
-    guiModule.start();
+    //guiModule.start();
     udpSender.start();
 
     // 设置键鼠钩子
-    setHooks();
+    //setHooks();
 
     // 消息循环
     MSG msg;
@@ -369,6 +369,30 @@ int main() {
 
     // 等待线程池中的所有任务完成
     pool.~ThreadPool();
+
+    return 0;
+}
+
+int TestImg() {
+    // 创建 AI 推理模块
+    AIInferenceModule aiInferenceModule;
+
+    // 读取图片
+    std::string imagePath = "C:\\Users\\pc\\source\\repos\\Onnx1\\images\\Snipaste_2024-06-16_11-12-22.png";
+    cv::Mat image = cv::imread(imagePath);
+
+    if (image.empty()) {
+        std::cerr << "Error: Could not open or find the image!" << std::endl;
+        return -1;
+    }
+
+    // 进行 AI 推理
+    auto results = aiInferenceModule.processImage(image);
+
+    // 输出推理结果
+    for (const auto& result : results) {
+        std::cout << "Detection: " << result.box.x << ", " << result.box.y << ", " << result.box.width << ", " << result.box.height << std::endl;
+    }
 
     return 0;
 }

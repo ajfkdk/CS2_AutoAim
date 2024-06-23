@@ -1,7 +1,7 @@
 #include "inference.h"
 #include <regex>
 
-//#define benchmark
+#define benchmark
 #define USE_CUDA
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 YOLO_V8::YOLO_V8() {
@@ -192,7 +192,7 @@ char* YOLO_V8::RunSession(cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
     // 记录开始时间用于基准测试
     clock_t starttime_1 = clock();
 #endif // benchmark
-    clock_t starttime_1 = clock();
+    //clock_t starttime_1 = clock();
     // 定义返回值并初始化为成功状态
     char* Ret = RET_OK;
 
@@ -222,7 +222,7 @@ char* YOLO_V8::RunSession(cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
     {
 #ifdef USE_CUDA
         // 为存储预处理图像数据分配内存（半精度浮点数）
-        half* blob = new half[processedImg.total() * 3];
+        float* blob = new float[processedImg.total() * 3];
 
         // 将图像数据转换为blob格式
         BlobFromImage(processedImg, blob);
@@ -233,8 +233,7 @@ char* YOLO_V8::RunSession(cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
         // 调用TensorProcess函数进行推理
         TensorProcess(starttime_1, iImg, blob, inputNodeDims, oResult);
 
-        // 释放内存
-        delete[] blob;
+      
 #endif
     }
 
@@ -277,8 +276,8 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
     case YOLO_DETECT_V8:
     case YOLO_DETECT_V8_HALF:
     {
-        int numDetections = outputNodeDims[1]; // 获取输出节点维度的第二个值，表示检测框的数量
-        int numAttributes = outputNodeDims[2]; // 获取输出节点维度的第三个值，表示每个检测框的属性数量（6）
+        int numDetections = outputNodeDims[2]; // 表示检测框的数量 8400
+        int numAttributes = outputNodeDims[1]; // 表示每个检测框的属性数量（8）
 
         std::vector<int> class_ids; // 用于存储类别ID的向量
         std::vector<float> confidences; // 用于存储置信度的向量
@@ -287,27 +286,30 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
         cv::Mat rawData; // 用于存储原始数据的矩阵
         if (modelType == YOLO_DETECT_V8) {
             // 如果模型类型为YOLO_DETECT_V8，则使用FP32格式
-            rawData = cv::Mat(numDetections, numAttributes, CV_32F, output);
+            rawData = cv::Mat(numAttributes, numDetections, CV_32F, output);
         }
         else {
             // 否则使用FP16格式，并将其转换为FP32格式
             rawData = cv::Mat(numDetections, numAttributes, CV_16F, output);
             rawData.convertTo(rawData, CV_32F);
         }
+        // 转置和压缩矩阵
+        cv::Mat transposedData;
+        cv::transpose(rawData, transposedData);
+        transposedData = transposedData.reshape(1, { numDetections, numAttributes });
 
-        float* data = (float*)rawData.data; // 获取矩阵数据的指针
+        float* data = (float*)transposedData.data; // 获取转置后矩阵数据的指针
 
-  
         for (int i = 0; i < numDetections; ++i) {
-            float confidence = data[4]; // 获取置信度
-            if (confidence > rectConfidenceThreshold) {
-                // 如果置信度超过阈值，则处理该检测框
-                confidences.push_back(confidence);
+            // 提取类别置信度
+            float* classes_scores = data + 4;
+            float max_score = *std::max_element(classes_scores, classes_scores + (numAttributes - 4));
 
-                int class_id = static_cast<int>(data[5]); // 获取类别ID
-                class_ids.push_back(class_id);
+            // 如果置信度超过阈值，则处理该检测框
+            if (max_score >= rectConfidenceThreshold) {
+                int class_id = std::distance(classes_scores, std::max_element(classes_scores, classes_scores + (numAttributes - 4)));
 
-                // 获取边框的中心坐标和宽高
+                // 提取边界框坐标
                 float x = data[0];
                 float y = data[1];
                 float w = data[2];
@@ -323,24 +325,34 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
 
                 // 存储边框
                 boxes.emplace_back(left, top, width, height);
+                confidences.push_back(max_score);
+                class_ids.push_back(class_id);
             }
             data += numAttributes; // 移动到下一个检测框
         }
 
-        // 执行非极大值抑制（NMS）
         std::vector<int> nmsResult;
-        cv::dnn::NMSBoxes(boxes, confidences, rectConfidenceThreshold, iouThreshold, nmsResult);
+        // 确保在调用 NMSBoxes 之前，boxes 和 confidences 的长度一致
+        if (boxes.size() == confidences.size()) {
+            // 执行非极大值抑制（NMS）
+            cv::dnn::NMSBoxes(boxes, confidences, rectConfidenceThreshold, iouThreshold, nmsResult);
 
-        // 保存最终的检测结果
-        for (int i = 0; i < nmsResult.size(); ++i)
-        {
-            int idx = nmsResult[i];
-            DL_RESULT result;
-            result.classId = class_ids[idx];
-            result.confidence = confidences[idx];
-            result.box = boxes[idx];
-            oResult.push_back(result);
+            // 保存最终的检测结果
+            for (int i = 0; i < nmsResult.size(); ++i) {
+                int idx = nmsResult[i];
+                DL_RESULT result;
+                result.classId = class_ids[idx];
+                result.confidence = confidences[idx];
+                result.box = boxes[idx];
+                oResult.push_back(result);
+            }
         }
+        else {
+            std::cerr << "Error: The number of boxes and confidences must be equal before applying NMS." << std::endl;
+            return RET_OK;
+        }
+
+  
 #ifdef benchmark
         // 记录后处理结束时间
         clock_t starttime_4 = clock();

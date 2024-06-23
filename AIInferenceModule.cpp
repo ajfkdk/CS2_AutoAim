@@ -13,7 +13,7 @@ AIInferenceModule::~AIInferenceModule() {
 }
 
 void AIInferenceModule::initializeDetector() {
-    yoloDetector->classes = { "person", "head" };
+    yoloDetector->classes = { "ct_body", "ct_head","t_body","t_head"};
 
     DL_INIT_PARAM params;
     params.rectConfidenceThreshold = 0.5;

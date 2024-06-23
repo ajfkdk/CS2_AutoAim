@@ -18,11 +18,11 @@ inline unsigned short udp_port = 21115;    // 目标设备的端口
 inline float aim_strength = 1.0f;
 
 // 是否显示图像
-inline std::atomic<bool> show_image{ false };
+inline std::atomic<bool> show_image{ true };
 
 // 模型路径
-inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx";
-
-
+inline std::string model_path = "C:/Users/pc/Desktop/best.onnx";
+//inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx";
+//inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx";
 
 #endif // GLOBAL_CONFIG_H

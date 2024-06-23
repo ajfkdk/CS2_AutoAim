@@ -19,7 +19,7 @@
 #endif
 
 // 模型输入的维度
-#define INPUT_SIZE 320
+#define INPUT_SIZE 640
 
 enum MODEL_TYPE
 {
@@ -38,7 +38,7 @@ enum MODEL_TYPE
 typedef struct _DL_INIT_PARAM
 {
     std::string modelPath;
-    MODEL_TYPE modelType = YOLO_DETECT_V8;
+    MODEL_TYPE modelType = YOLO_DETECT_V8_HALF;
     std::vector<int> imgSize = { INPUT_SIZE, INPUT_SIZE };
     float rectConfidenceThreshold = 0.8;
     float iouThreshold = 0.5;
