@@ -19,7 +19,7 @@
 #endif
 
 // 模型输入的维度
-#define INPUT_SIZE 640
+#define INPUT_SIZE 320
 
 enum MODEL_TYPE
 {
@@ -87,7 +87,9 @@ private:
     Ort::RunOptions options;
     std::vector<const char*> inputNodeNames;
     std::vector<const char*> outputNodeNames;
-
+    // 添加这些成员变量
+    float* blob;
+    size_t blobSize;
     MODEL_TYPE modelType;
     std::vector<int> imgSize;
     float rectConfidenceThreshold;

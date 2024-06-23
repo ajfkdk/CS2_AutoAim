@@ -1,7 +1,7 @@
 #include "inference.h"
 #include <regex>
 
-#define benchmark
+//#define benchmark
 #define USE_CUDA
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 YOLO_V8::YOLO_V8() {
@@ -28,14 +28,19 @@ char* BlobFromImage(cv::Mat& iImg, T& iBlob) {
     int imgHeight = iImg.rows;
     int imgWidth = iImg.cols;
 
-    for (int c = 0; c < channels; c++)
-    {
-        for (int h = 0; h < imgHeight; h++)
-        {
-            for (int w = 0; w < imgWidth; w++)
-            {
-                iBlob[c * imgWidth * imgHeight + h * imgWidth + w] = typename std::remove_pointer<T>::type(
-                    (iImg.at<cv::Vec3b>(h, w)[c]) / 255.0f);
+    if (!iImg.isContinuous()) {
+        iImg = iImg.clone();
+    }
+
+    const uchar* imgData = iImg.data;
+    float scale = 1.0f / 255.0f;
+
+    for (int c = 0; c < channels; ++c) {
+        for (int h = 0; h < imgHeight; ++h) {
+            for (int w = 0; w < imgWidth; ++w) {
+                iBlob[c * imgWidth * imgHeight + h * imgWidth + w] =
+                    typename std::remove_pointer<T>::type(
+                        imgData[h * imgWidth * channels + w * channels + c] * scale);
             }
         }
     }
@@ -188,10 +193,8 @@ char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
 
 
 char* YOLO_V8::RunSession(cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
-#ifdef benchmark
     // 记录开始时间用于基准测试
     clock_t starttime_1 = clock();
-#endif // benchmark
     //clock_t starttime_1 = clock();
     // 定义返回值并初始化为成功状态
     char* Ret = RET_OK;
@@ -201,42 +204,16 @@ char* YOLO_V8::RunSession(cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
 
     // 调用预处理函数对输入图像进行预处理
     PreProcess(iImg, imgSize, processedImg);
-    // 根据模型类型进行不同的处理
-    if (modelType < 4)
-    {
-        // 为存储预处理图像数据分配内存
-        float* blob = new float[processedImg.total() * 3];
+    // 为存储预处理图像数据分配内存
+    float* blob = new float[processedImg.total() * 3];
+    
+    // 将图像数据转换为blob格式
+    BlobFromImage(processedImg, blob);
 
-        // 将图像数据转换为blob格式
-        BlobFromImage(processedImg, blob);
-
-        // 定义输入节点的维度
-        std::vector<int64_t> inputNodeDims = { 1, 3, imgSize.at(0), imgSize.at(1) };
-
-        // 调用TensorProcess函数进行推理
-        TensorProcess(starttime_1, iImg, blob, inputNodeDims, oResult);
-
- 
-    }
-    else
-    {
-#ifdef USE_CUDA
-        // 为存储预处理图像数据分配内存（半精度浮点数）
-        float* blob = new float[processedImg.total() * 3];
-
-        // 将图像数据转换为blob格式
-        BlobFromImage(processedImg, blob);
-
-        // 定义输入节点的维度
-        std::vector<int64_t> inputNodeDims = { 1, 3, imgSize.at(0), imgSize.at(1) };
-
-        // 调用TensorProcess函数进行推理
-        TensorProcess(starttime_1, iImg, blob, inputNodeDims, oResult);
-
-      
-#endif
-    }
-
+    // 定义输入节点的维度
+    std::vector<int64_t> inputNodeDims = { 1, 3, imgSize.at(0), imgSize.at(1) };
+    // 调用TensorProcess函数进行推理
+    TensorProcess(starttime_1, iImg, blob, inputNodeDims, oResult);
     // 返回成功状态
     return Ret;
 }

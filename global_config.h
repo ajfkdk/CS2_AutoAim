@@ -21,7 +21,8 @@ inline float aim_strength = 1.0f;
 inline std::atomic<bool> show_image{ true };
 
 // Ä£ÐÍÂ·¾¶
-inline std::string model_path = "C:/Users/pc/Desktop/best.onnx";
+//inline std::string model_path = "C:/Users/pc/Desktop/32-3200.onnx";
+inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx";
 
