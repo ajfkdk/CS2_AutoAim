@@ -290,7 +290,10 @@ void removeHooks() {
     }
 }
 
-int main() {
+int  WINAPI WinMain(HINSTANCE hInstance,
+    HINSTANCE hPrevInstance,
+    LPSTR lpCmdLine,
+    int nCmdShow) {
     // 获取主线程 ID
     mainThreadId = GetCurrentThreadId();
     // 设置进程优先级
@@ -312,7 +315,7 @@ int main() {
 
     // 设置键鼠钩子
     setHooks();
-
+    guiModule.hideWindow();
     // 消息循环
     MSG msg;
     while (running && GetMessage(&msg, nullptr, 0, 0)) {
@@ -333,27 +336,47 @@ int main() {
 
     return 0;
 }
-
-int TestImg() {
-    // 创建 AI 推理模块
-    AIInferenceModule aiInferenceModule;
-
-    // 读取图片
-    std::string imagePath = "C:\\Users\\pc\\source\\repos\\Onnx1\\images\\Snipaste_2024-06-16_11-12-22.png";
-    cv::Mat image = cv::imread(imagePath);
-
-    if (image.empty()) {
-        std::cerr << "Error: Could not open or find the image!" << std::endl;
-        return -1;
-    }
-
-    // 进行 AI 推理
-    auto results = aiInferenceModule.processImage(image);
-
-    // 输出推理结果
-    for (const auto& result : results) {
-        std::cout << "Detection: " << result.box.x << ", " << result.box.y << ", " << result.box.width << ", " << result.box.height << std::endl;
-    }
-
-    return 0;
-}
+//
+//int  main() {
+//    // 获取主线程 ID
+//    mainThreadId = GetCurrentThreadId();
+//    // 设置进程优先级
+//    setProcessPriority();
+//
+//    // 创建截图线程并加入线程池
+//    pool.enqueue(screenshotThread);
+//
+//    // 创建 AI 推理模块
+//    AIInferenceModule aiInferenceModule;
+//
+//    // 创建 AI 推理线程并加入线程池
+//    pool.enqueue([&aiInferenceModule] { aiInferenceThread(aiInferenceModule); });
+//
+//
+//    //guiModule.start();
+//    udpSender.start();
+//    guiModule.start();
+//
+//    // 设置键鼠钩子
+//    //setHooks();
+//    guiModule.hideWindow();
+//    // 消息循环
+//    MSG msg;
+//    while (running && GetMessage(&msg, nullptr, 0, 0)) {
+//        std::cout << "111 Main thread running: " << running.load() << std::endl;
+//        TranslateMessage(&msg);
+//        DispatchMessage(&msg);
+//    }
+//    std::cout << "Main thread running: " << running.load() << std::endl;
+//
+//    // 移除钩子
+//    removeHooks();
+//
+//    // 停止所有线程
+//    running = false;
+//
+//    // 等待线程池中的所有任务完成
+//    pool.~ThreadPool();
+//
+//    return 0;
+//}
