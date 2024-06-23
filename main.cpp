@@ -4,6 +4,7 @@
 #include "AIInferenceModule.h"
 #include "GUIModule.h"
 #include "ThreadPool.h"
+#include "global_config.h"
 #include <winsock2.h>
 #include <windows.h>
 #include <iostream>
@@ -12,6 +13,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+
 
 
 cv::Mat globalImageData;
@@ -29,8 +31,6 @@ std::atomic<bool> newDataAvailable(false);
 // 用于记录侧键状态
 std::atomic<bool> isXButton1Pressed{ false };
 std::atomic<bool> isXButton2Pressed{ false };
-// 连续发射子弹数量
-int bullet_count = 1;
 
 //推理图片的双缓冲
 cv::Mat bufferImage1;
@@ -41,8 +41,6 @@ std::atomic<bool> imageBufferReady(false);
 
 // 发射状态
 std::atomic<bool> isFiring(false);
-// 上一次点射结束时间
-std::chrono::time_point<std::chrono::steady_clock> lastBurstEndTime;
 
 const int screen_width = 1920;
 const int screen_height = 1080;
@@ -57,14 +55,11 @@ ThreadPool pool(std::thread::hardware_concurrency());
 HHOOK mouseHook;
 HHOOK keyboardHook;
 LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam);
-// 配置UDP发送器
-std::string udp_ip = "192.168.8.7"; // 目标设备的IP地址
-unsigned short udp_port = 21115; // 目标设备的端口
+
 
 // 将 udpSender 定义为全局变量
 UDPSender udpSender(udp_ip, udp_port);
-// 自瞄强度，可以根据需要调整
-float aim_strength = 1;
+
 
 //主线程ID用于发送WM_QUIT消息
 DWORD mainThreadId;
@@ -215,6 +210,7 @@ int find_and_calculate_vector_x(const std::vector<DL_RESULT>& boxes, float aim_s
 
 void burstFire() {
     for (int i = 0; i < bullet_count; ++i) {
+        std::cout<< "Firing bullet " << i + 1 << std::endl;
         udpSender.sendLeftClick();
         std::this_thread::sleep_for(std::chrono::milliseconds(150)); // 每发子弹之间稍微停顿
     }
@@ -232,9 +228,7 @@ void processXButton1() {
                 int move_x = find_and_calculate_vector_x(*readBuffer, aim_strength);
                 std::cout<< "move_x: " << move_x << std::endl;
                 udpSender.updatePosition(move_x, 0);
-                if (move_x >= -1 && move_x <= 1) {
-                      
-                    // 如果没有在点射中并且距离上一次点射结束已经超过 500 毫秒，则启动新的点射
+                if (move_x >= -shoot_range && move_x <= shoot_range) {
                     if (!isFiring.load(std::memory_order_acquire)) {
                         isFiring.store(true, std::memory_order_release);
                         std::thread(burstFire).detach();

@@ -1,4 +1,5 @@
 #include "GUIModule.h"
+#include "global_config.h"  // 包含全局配置头文件
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -89,9 +90,25 @@ void GUIModule::guiThread() {
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
         ImGui::SetNextWindowSize(ImVec2(static_cast<float>(500), static_cast<float>(500)), ImGuiCond_Once);
         ImGui::Begin("Control Panel", nullptr);
+
+        // 添加控制参数的 ImGui 控件
+        ImGui::SliderInt("Bullet Count", &bullet_count, 1, 10);
+        ImGui::SliderInt("Shoot Range", &shoot_range, 1, 10);
+        ImGui::InputText("UDP IP", &udp_ip[0], udp_ip.size() + 1);
+        ImGui::InputScalar("UDP Port", ImGuiDataType_U16, &udp_port);
+        ImGui::SliderFloat("Aim Strength", &aim_strength, 0.0f, 10.0f);
+        // 临时变量来存储 std::atomic<bool> 的值
+        bool show_image_temp = show_image.load(std::memory_order_relaxed);
+        if (ImGui::Checkbox("Show Image", &show_image_temp)) {
+            show_image.store(show_image_temp, std::memory_order_relaxed);
+        }
+
+        ImGui::InputText("Model Path", &model_path[0], model_path.size() + 1);
+
         if (ImGui::Button("Exit Program")) {
             exitFunction();
         }
+
         ImGui::End();
 
         // 渲染 ImGui
