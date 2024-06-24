@@ -97,6 +97,7 @@ void GUIModule::guiThread() {
         ImGui::InputText("UDP IP", &udp_ip[0], udp_ip.size() + 1);
         ImGui::InputScalar("UDP Port", ImGuiDataType_U16, &udp_port);
         ImGui::SliderFloat("Aim Strength", &aim_strength, 0.0f, 10.0f);
+        ImGui::SliderFloat("Aim Strength_2", &aim_strength2, 0.0f, 10.0f);
         // 临时变量来存储 std::atomic<bool> 的值
         bool show_image_temp = show_image.load(std::memory_order_relaxed);
         if (ImGui::Checkbox("Show Image", &show_image_temp)) {

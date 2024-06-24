@@ -15,7 +15,7 @@
 #include <algorithm>
 
 
-
+bool debugTime = true;
 cv::Mat globalImageData;
 cv::Mat globalProcessedImage;
 std::vector<DL_RESULT> globalPositionData;
@@ -72,10 +72,21 @@ void screenshotThread() {
     SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
     std::cout << "Screenshot thread running: " << running.load() << std::endl;
     while (running) {
+        auto start = std::chrono::high_resolution_clock::now();
+
         cv::Mat newImage = capture_center_screen();
         *writeImageBuffer = newImage;
         imageBufferReady.store(true, std::memory_order_release);
         std::swap(writeImageBuffer, readImageBuffer);
+
+        auto end = std::chrono::high_resolution_clock::now();
+        if (debugTime){
+            std::chrono::duration<double> elapsed = end - start;
+            std::cout << "Screenshot time: " << elapsed.count() * 1000 << " ms" << std::endl;
+        }
+        //暂停1ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
     }
     //关闭getMessage
     PostThreadMessage(mainThreadId, WM_QUIT, 0, 0);  // 发送 WM_QUIT 消息
@@ -87,24 +98,32 @@ void aiInferenceThread(AIInferenceModule& aiInferenceModule) {
     SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
 
     while (running) {
-        clock_t start = clock();
+       
         
         if (imageBufferReady.load(std::memory_order_acquire)) {
             cv::Mat imageToProcess = readImageBuffer->clone();
             imageBufferReady.store(false, std::memory_order_release);
 
             if (!imageToProcess.empty()) {
+                auto start = std::chrono::high_resolution_clock::now();
                 auto results = aiInferenceModule.processImage(imageToProcess);
                 writeBuffer->assign(results.begin(), results.end());
                 newDataAvailable.store(true, std::memory_order_release);
                 std::swap(writeBuffer, readBuffer);
+                auto end = std::chrono::high_resolution_clock::now();
+                if (debugTime) {
+                    std::chrono::duration<double> elapsed = end - start;
+                    std::cout << "---->AI time: " << elapsed.count() * 1000 << " ms" << std::endl;
+                }
+            }
+            else {
+                				std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
         }
-        clock_t end = clock();
-        //std::cout << "AIInference time: " << (double)(end - start) / CLOCKS_PER_SEC << std::endl;
-        //计算FPS并输出
-        double fps = 1.0 / ((double)(end - start) / CLOCKS_PER_SEC);
-        std::cout << "FPS: " << fps << std::endl;
+        else {
+            			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+       
         
     }
     std::cout << "AiInference thread running: " << running.load() << std::endl;
@@ -113,7 +132,7 @@ void aiInferenceThread(AIInferenceModule& aiInferenceModule) {
 }
 
 // 寻找并计算移动向量
-std::pair<int, int> find_and_calculate_vector(const std::vector<DL_RESULT>& boxes) {
+std::pair<int, int> find_and_calculate_vector(const std::vector<DL_RESULT>& boxes,float speed = 1.0f) {
     int target_x = CAPTURE_SIZE / 2;
     int target_y = CAPTURE_SIZE / 2; // 假设捕获区域是正方形的
 
@@ -150,7 +169,7 @@ std::pair<int, int> find_and_calculate_vector(const std::vector<DL_RESULT>& boxe
     if (dx != 0) {
         int distance_x = std::abs(dx);
         float step_x = std::max(static_cast<float>(min_step), std::min(static_cast<float>(max_step), distance_x / 10.0f));
-        step_x *= aim_strength;
+        step_x *= speed;
         move_x = static_cast<int>(dx / distance_x * step_x);
     }
 
@@ -158,7 +177,7 @@ std::pair<int, int> find_and_calculate_vector(const std::vector<DL_RESULT>& boxe
     if (is_head && dy != 0) {
         int distance_y = std::abs(dy);
         float step_y = std::max(static_cast<float>(min_step), std::min(static_cast<float>(max_step), distance_y / 10.0f));
-        step_y *= aim_strength;
+        step_y *= speed;
         move_y = static_cast<int>(dy / distance_y * step_y);
     }
 
@@ -182,7 +201,7 @@ void processXButton1() {
         if (newDataAvailable.load(std::memory_order_acquire)) {
             newDataAvailable.store(false, std::memory_order_release);
             if (readBuffer && !readBuffer->empty()) {
-                std::pair<int, int> movement = find_and_calculate_vector(*readBuffer);
+                std::pair<int, int> movement = find_and_calculate_vector(*readBuffer,aim_strength2);
                 int move_x = movement.first;
                 int move_y = movement.second;
                 udpSender.updatePosition(move_x, move_y);
@@ -204,7 +223,7 @@ void processXButton2() {
         if (newDataAvailable.load(std::memory_order_acquire)) {
             newDataAvailable.store(false, std::memory_order_release);
             if (readBuffer && !readBuffer->empty()) {
-                std::pair<int, int> movement = find_and_calculate_vector(*readBuffer);
+                std::pair<int, int> movement = find_and_calculate_vector(*readBuffer,aim_strength);
                 int move_x = movement.first;
                 int move_y = movement.second;
                 udpSender.updatePosition(move_x, move_y);
@@ -290,10 +309,54 @@ void removeHooks() {
     }
 }
 
-int  WINAPI WinMain(HINSTANCE hInstance,
-    HINSTANCE hPrevInstance,
-    LPSTR lpCmdLine,
-    int nCmdShow) {
+//int  WINAPI WinMain(HINSTANCE hInstance,
+//    HINSTANCE hPrevInstance,
+//    LPSTR lpCmdLine,
+//    int nCmdShow) {
+//    // 获取主线程 ID
+//    mainThreadId = GetCurrentThreadId();
+//    // 设置进程优先级
+//    setProcessPriority();
+//
+//    // 创建截图线程并加入线程池
+//    pool.enqueue(screenshotThread);
+//
+//    // 创建 AI 推理模块
+//    AIInferenceModule aiInferenceModule;
+//
+//    // 创建 AI 推理线程并加入线程池
+//    pool.enqueue([&aiInferenceModule] { aiInferenceThread(aiInferenceModule); });
+//
+//
+//    //guiModule.start();
+//    udpSender.start();
+//    guiModule.start();
+//
+//    // 设置键鼠钩子
+//    setHooks();
+//    guiModule.hideWindow();
+//    // 消息循环
+//    MSG msg;
+//    while (running && GetMessage(&msg, nullptr, 0, 0)) {
+//        std::cout<< "111 Main thread running: " << running.load() << std::endl;
+//        TranslateMessage(&msg);
+//        DispatchMessage(&msg);
+//    }
+//    std::cout << "Main thread running: " << running.load() << std::endl;
+//
+//    // 移除钩子
+//    removeHooks();
+//
+//    // 停止所有线程
+//    running = false;
+//
+//    // 等待线程池中的所有任务完成
+//    pool.~ThreadPool();
+//
+//    return 0;
+//}
+//
+int  main1() {
     // 获取主线程 ID
     mainThreadId = GetCurrentThreadId();
     // 设置进程优先级
@@ -319,7 +382,7 @@ int  WINAPI WinMain(HINSTANCE hInstance,
     // 消息循环
     MSG msg;
     while (running && GetMessage(&msg, nullptr, 0, 0)) {
-        std::cout<< "111 Main thread running: " << running.load() << std::endl;
+        std::cout << "111 Main thread running: " << running.load() << std::endl;
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
@@ -336,47 +399,28 @@ int  WINAPI WinMain(HINSTANCE hInstance,
 
     return 0;
 }
-//
-//int  main() {
-//    // 获取主线程 ID
-//    mainThreadId = GetCurrentThreadId();
-//    // 设置进程优先级
-//    setProcessPriority();
-//
-//    // 创建截图线程并加入线程池
-//    pool.enqueue(screenshotThread);
-//
-//    // 创建 AI 推理模块
-//    AIInferenceModule aiInferenceModule;
-//
-//    // 创建 AI 推理线程并加入线程池
-//    pool.enqueue([&aiInferenceModule] { aiInferenceThread(aiInferenceModule); });
-//
-//
-//    //guiModule.start();
-//    udpSender.start();
-//    guiModule.start();
-//
-//    // 设置键鼠钩子
-//    //setHooks();
-//    guiModule.hideWindow();
-//    // 消息循环
-//    MSG msg;
-//    while (running && GetMessage(&msg, nullptr, 0, 0)) {
-//        std::cout << "111 Main thread running: " << running.load() << std::endl;
-//        TranslateMessage(&msg);
-//        DispatchMessage(&msg);
-//    }
-//    std::cout << "Main thread running: " << running.load() << std::endl;
-//
-//    // 移除钩子
-//    removeHooks();
-//
-//    // 停止所有线程
-//    running = false;
-//
-//    // 等待线程池中的所有任务完成
-//    pool.~ThreadPool();
-//
-//    return 0;
-//}
+
+
+int main() {
+    // 创建 AI 推理模块
+    AIInferenceModule aiInferenceModule;
+
+    // 读取图片
+    std::string imagePath = "C:/Users/pc/Desktop/Snipaste_2024-06-17_21-35-30.png";
+    cv::Mat image = cv::imread(imagePath);
+
+    if (image.empty()) {
+        std::cerr << "Error: Could not open or find the image!" << std::endl;
+        return -1;
+    }
+
+    // 进行 AI 推理
+    auto results = aiInferenceModule.processImage(image);
+
+    // 输出推理结果
+    for (const auto& result : results) {
+        std::cout << "Detection: " << result.box.x << ", " << result.box.y << ", " << result.box.width << ", " << result.box.height << std::endl;
+    }
+
+    return 0;
+}
