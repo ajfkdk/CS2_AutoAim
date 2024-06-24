@@ -13,6 +13,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <TCPSender.h>
 
 
 bool debugAI = true;
@@ -59,14 +60,18 @@ HHOOK keyboardHook;
 LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam);
 
 
+
 // 将 udpSender 定义为全局变量
 UDPSender udpSender(udp_ip, udp_port);
-
+// 声明一个 TCP 客户端
+TCPSender tcpSender(tcp_ip, tcp_port);
 
 //主线程ID用于发送WM_QUIT消息
 DWORD mainThreadId;
 
 GUIModule guiModule(running);
+
+
 
 
 // 截图线程
@@ -358,14 +363,20 @@ void removeHooks() {
 //    return 0;
 //}
 //
-int  main_start() {
+int  main() {
     // 获取主线程 ID
     mainThreadId = GetCurrentThreadId();
     // 设置进程优先级
     setProcessPriority();
 
-    // 创建截图线程并加入线程池
-    pool.enqueue(screenshotThread);
+    tcpSender.setImageBuffers(&bufferImage1, &bufferImage2, &imageBufferReady);
+
+    std::thread tcpSenderThread([&]() {
+        tcpSender.start();
+        });
+
+    // 创建 TCP 图像接收线程并加入线程池
+
 
     // 创建 AI 推理模块
     AIInferenceModule aiInferenceModule;
@@ -395,6 +406,11 @@ int  main_start() {
 
     // 停止所有线程
     running = false;
+
+    tcpSender.stop();
+    if (tcpSenderThread.joinable()) {
+        tcpSenderThread.join();
+    }
 
     // 等待线程池中的所有任务完成
     pool.~ThreadPool();

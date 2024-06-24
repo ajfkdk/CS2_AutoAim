@@ -29,4 +29,8 @@ inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx";
 
+//tcp²ÎÊý
+inline std::string tcp_ip = "0.0.0.0";
+inline unsigned short tcp_port = 18856;
+
 #endif // GLOBAL_CONFIG_H
