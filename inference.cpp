@@ -253,6 +253,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
     case YOLO_DETECT_V8:
     case YOLO_DETECT_V8_HALF:
     {
+        
         int numDetections = outputNodeDims[2]; // 表示检测框的数量 8400
         int numAttributes = outputNodeDims[1]; // 表示每个检测框的属性数量（8）
 
@@ -351,6 +352,39 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
 #endif // benchmark
 
         break;
+    }
+    case YOLO_DETECT_V10:
+    {
+        int numDetections = outputNodeDims[1]; // 表示检测框的数量 300
+        int numAttributes = outputNodeDims[2]; // 表示每个检测框的属性数量（6）
+
+
+        for (int i = 0; i < numDetections; ++i) {
+            // 获取当前检测框的数据
+            float x1 = output[i * numAttributes + 0];
+            float y1 = output[i * numAttributes + 1];
+            float x2 = output[i * numAttributes + 2];
+            float y2 = output[i * numAttributes + 3];
+            float score = output[i * numAttributes + 4];
+            int class_id = static_cast<int>(output[i * numAttributes + 5]);
+
+            // 如果置信度超过阈值，则处理该检测框
+            if (score >= rectConfidenceThreshold) {
+                // 计算边框的左上角坐标和宽高
+                int left = static_cast<int>(x1 * resizeScales);
+                int top = static_cast<int>(y1 * resizeScales);
+                int width = static_cast<int>((x2 - x1) * resizeScales);
+                int height = static_cast<int>((y2 - y1) * resizeScales);
+
+                // 存储检测结果
+
+                DL_RESULT result;
+                result.classId = class_id;
+                result.confidence = score;
+                result.box = cv::Rect(left, top, width, height);
+                oResult.push_back(result);
+            }
+        }
     }
 
     return RET_OK;

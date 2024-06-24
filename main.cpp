@@ -15,7 +15,9 @@
 #include <algorithm>
 
 
-bool debugTime = true;
+bool debugAI = true;
+bool debugCapture = false;
+
 cv::Mat globalImageData;
 cv::Mat globalProcessedImage;
 std::vector<DL_RESULT> globalPositionData;
@@ -80,7 +82,7 @@ void screenshotThread() {
         std::swap(writeImageBuffer, readImageBuffer);
 
         auto end = std::chrono::high_resolution_clock::now();
-        if (debugTime){
+        if (debugCapture){
             std::chrono::duration<double> elapsed = end - start;
             std::cout << "Screenshot time: " << elapsed.count() * 1000 << " ms" << std::endl;
         }
@@ -111,7 +113,7 @@ void aiInferenceThread(AIInferenceModule& aiInferenceModule) {
                 newDataAvailable.store(true, std::memory_order_release);
                 std::swap(writeBuffer, readBuffer);
                 auto end = std::chrono::high_resolution_clock::now();
-                if (debugTime) {
+                if (debugAI) {
                     std::chrono::duration<double> elapsed = end - start;
                     std::cout << "---->AI time: " << elapsed.count() * 1000 << " ms" << std::endl;
                 }
@@ -356,7 +358,7 @@ void removeHooks() {
 //    return 0;
 //}
 //
-int  main1() {
+int  main_start() {
     // 获取主线程 ID
     mainThreadId = GetCurrentThreadId();
     // 设置进程优先级
@@ -401,7 +403,7 @@ int  main1() {
 }
 
 
-int main() {
+int main_testAI() {
     // 创建 AI 推理模块
     AIInferenceModule aiInferenceModule;
 
