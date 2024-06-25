@@ -1,7 +1,7 @@
 #include "inference.h"
 #include <regex>
 
-//#define benchmark
+#define benchmark
 #define USE_CUDA
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 YOLO_V8::YOLO_V8() {
@@ -118,7 +118,7 @@ char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
         // 创建ORT环境
         env = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "Yolo");
         Ort::SessionOptions sessionOption;
-
+         
         // 如果启用CUDA，则设置CUDA选项
         if (iParams.cudaEnable)
         {
@@ -206,14 +206,15 @@ char* YOLO_V8::RunSession(cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
     PreProcess(iImg, imgSize, processedImg);
     // 为存储预处理图像数据分配内存
     float* blob = new float[processedImg.total() * 3];
-    
+   
     // 将图像数据转换为blob格式
     BlobFromImage(processedImg, blob);
-
+    
     // 定义输入节点的维度
     std::vector<int64_t> inputNodeDims = { 1, 3, imgSize.at(0), imgSize.at(1) };
     // 调用TensorProcess函数进行推理
     TensorProcess(starttime_1, iImg, blob, inputNodeDims, oResult);
+    
     // 返回成功状态
     return Ret;
 }
@@ -385,6 +386,25 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
                 oResult.push_back(result);
             }
         }
+#ifdef benchmark
+        // 记录后处理结束时间
+        clock_t starttime_4 = clock();
+
+        // 计算处理时间
+        double pre_process_time = (double)(starttime_2 - starttime_1) / CLOCKS_PER_SEC * 1000;
+        double process_time = (double)(starttime_3 - starttime_2) / CLOCKS_PER_SEC * 1000;
+        double post_process_time = (double)(starttime_4 - starttime_3) / CLOCKS_PER_SEC * 1000;
+
+        // 输出处理时间
+        if (cudaEnable)
+        {
+            std::cout << "[YOLO_V8(CUDA)]: " << pre_process_time << "ms pre-process, " << process_time << "ms inference, " << post_process_time << "ms post-process." << std::endl;
+        }
+        else
+        {
+            std::cout << "[YOLO_V8(CPU)]: " << pre_process_time << "ms pre-process, " << process_time << "ms inference, " << post_process_time << "ms post-process." << std::endl;
+        }
+#endif // benchmark
     }
 
     return RET_OK;

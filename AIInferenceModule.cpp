@@ -23,6 +23,7 @@ void AIInferenceModule::initializeDetector() {
 
 #ifdef USE_CUDA
     params.cudaEnable = true;
+    //params.modelType = YOLO_DETECT_V10;
     params.modelType = YOLO_DETECT_V8;
 #else
     params.cudaEnable = false;

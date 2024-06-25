@@ -15,8 +15,8 @@
 #include <algorithm>
 
 
-bool debugAI = true;
-bool debugCapture = false;
+bool debugAI = false;
+bool debugCapture = true;
 
 cv::Mat globalImageData;
 cv::Mat globalProcessedImage;
@@ -358,7 +358,7 @@ void removeHooks() {
 //    return 0;
 //}
 //
-int  main_start() {
+int  main() {
     // 获取主线程 ID
     mainThreadId = GetCurrentThreadId();
     // 设置进程优先级
@@ -403,7 +403,7 @@ int  main_start() {
 }
 
 
-int main_testAI() {
+int main12() {
     // 创建 AI 推理模块
     AIInferenceModule aiInferenceModule;
 

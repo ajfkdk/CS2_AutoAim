@@ -47,7 +47,7 @@ typedef struct _DL_INIT_PARAM
     int	keyPointsNum = 2;//Note:kpt number for pose
     bool cudaEnable = true;
     int logSeverityLevel = 3;
-    int intraOpNumThreads = 1;
+    int intraOpNumThreads = 4;
 } DL_INIT_PARAM;
 
 
