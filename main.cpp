@@ -13,10 +13,10 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
-#include "mouse_logic.cpp"  
+#include "mouse_logic.h"  
 
 bool debugAI = false;
-bool debugCapture = true;
+bool debugCapture = false;
 
 cv::Mat globalImageData;
 cv::Mat globalProcessedImage;
@@ -49,6 +49,9 @@ const int screen_height = 1080;
 const int CAPTURE_SIZE = 320;
 const int image_top_left_x = (screen_width - CAPTURE_SIZE) / 2;
 const int image_top_left_y = (screen_height - CAPTURE_SIZE) / 2;
+
+// 智能鼠标模块
+MouseLogic mouse_logic(CAPTURE_SIZE, screen_width, screen_height, image_top_left_x , image_top_left_y);
 
 // 创建一个全局的线程池对象
 ThreadPool pool(std::thread::hardware_concurrency());
@@ -109,9 +112,8 @@ void aiInferenceThread(AIInferenceModule& aiInferenceModule) {
             if (!imageToProcess.empty()) {
                 auto start = std::chrono::high_resolution_clock::now();
                 auto results = aiInferenceModule.processImage(imageToProcess);
-                writeBuffer->assign(results.begin(), results.end());
-                newDataAvailable.store(true, std::memory_order_release);
-                std::swap(writeBuffer, readBuffer);
+                mouse_logic.set_boxes(results);
+                
                 auto end = std::chrono::high_resolution_clock::now();
                 if (debugAI) {
                     std::chrono::duration<double> elapsed = end - start;
@@ -133,58 +135,6 @@ void aiInferenceThread(AIInferenceModule& aiInferenceModule) {
    
 }
 
-// 寻找并计算移动向量
-std::pair<int, int> find_and_calculate_vector(const std::vector<DL_RESULT>& boxes,float speed = 1.0f) {
-    int target_x = CAPTURE_SIZE / 2;
-    int target_y = CAPTURE_SIZE / 2; // 假设捕获区域是正方形的
-
-    int min_distance_sq = std::numeric_limits<int>::max();
-    int nearest_bbox_x = target_x;
-    int nearest_bbox_y = target_y;
-    bool is_head = false;
-
-    for (const auto& box : boxes) {
-        int bbox_x = (box.box.x + box.box.x + box.box.width) / 2;
-        int bbox_y = (box.box.y + box.box.y + box.box.height) / 2;
-        int distance_sq = (bbox_x - target_x) * (bbox_x - target_x) + (bbox_y - target_y) * (bbox_y - target_y); // 计算距离的平方
-
-        if (distance_sq < min_distance_sq) {
-            min_distance_sq = distance_sq;
-            nearest_bbox_x = bbox_x;
-            nearest_bbox_y = bbox_y;
-            is_head = (box.classId == 1 || box.classId == 3); // 判断是否为头部
-        }
-    }
-
-    nearest_bbox_x += image_top_left_x;
-    nearest_bbox_y += image_top_left_y; // 假设image_top_left_y已定义
-
-    int center_x = screen_width / 2;
-    int center_y = screen_height / 2; // 假设已定义屏幕高度
-    int dx = nearest_bbox_x - center_x;
-    int dy = nearest_bbox_y - center_y;
-
-    int max_step = 10;
-    int min_step = 1;
-
-    int move_x = 0;
-    if (dx != 0) {
-        int distance_x = std::abs(dx);
-        float step_x = std::max(static_cast<float>(min_step), std::min(static_cast<float>(max_step), distance_x / 10.0f));
-        step_x *= speed;
-        move_x = static_cast<int>(dx / distance_x * step_x);
-    }
-
-    int move_y = 0;
-    if (is_head && dy != 0) {
-        int distance_y = std::abs(dy);
-        float step_y = std::max(static_cast<float>(min_step), std::min(static_cast<float>(max_step), distance_y / 10.0f));
-        step_y *= speed;
-        move_y = static_cast<int>(dy / distance_y * step_y);
-    }
-
-    return { move_x, move_y };
-}
 
 void burstFire() {
     for (int i = 0; i < bullet_count; ++i) {
@@ -200,37 +150,25 @@ void burstFire() {
 // 线程函数
 void processXButton1() {
     while (isXButton1Pressed.load(std::memory_order_acquire)) {
-        if (newDataAvailable.load(std::memory_order_acquire)) {
-            newDataAvailable.store(false, std::memory_order_release);
-            if (readBuffer && !readBuffer->empty()) {
-                std::pair<int, int> movement = find_and_calculate_vector(*readBuffer,aim_strength2);
-                int move_x = movement.first;
-                int move_y = movement.second;
-                udpSender.updatePosition(move_x, move_y);
-                if (move_x >= -shoot_range && move_x <= shoot_range) {
-                    if (!isFiring.load(std::memory_order_acquire)) {
-                        isFiring.store(true, std::memory_order_release);
-                        std::thread(burstFire).detach();
-                    }
-
-                }
-
+        auto [move_x, move_y] = mouse_logic.get_move_vector(aim_strength2);
+        udpSender.updatePosition(move_x, move_y);
+        std::this_thread::sleep_for(std::chrono::milliseconds(mouse_move_pause));
+        if (move_x!=0&&move_x >= -shoot_range && move_x <= shoot_range) {
+            if (!isFiring.load(std::memory_order_acquire)) {
+                isFiring.store(true, std::memory_order_release);
+                std::thread(burstFire).detach();
             }
         }
+        
     }
 }
 
 void processXButton2() {
     while (isXButton2Pressed.load(std::memory_order_acquire)) {
-        if (newDataAvailable.load(std::memory_order_acquire)) {
-            newDataAvailable.store(false, std::memory_order_release);
-            if (readBuffer && !readBuffer->empty()) {
-                std::pair<int, int> movement = find_and_calculate_vector(*readBuffer,aim_strength);
-                int move_x = movement.first;
-                int move_y = movement.second;
-                udpSender.updatePosition(move_x, move_y);
-            }
-        }
+        auto [move_x, move_y] = mouse_logic.get_move_vector(aim_strength2);
+        udpSender.updatePosition(move_x, move_y);
+        std::this_thread::sleep_for(std::chrono::milliseconds(mouse_move_pause));
+        
     }
 }
 
@@ -256,10 +194,12 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
             if (HIWORD(mouseInfo->mouseData) & XBUTTON1) {
                 std::cout << "侧键1松开" << std::endl;
                 isXButton1Pressed.store(false, std::memory_order_release);
+                mouse_logic.reset_end();
             }
             else if (HIWORD(mouseInfo->mouseData) & XBUTTON2) {
                 std::cout << "侧键2松开" << std::endl;
                 isXButton2Pressed.store(false, std::memory_order_release);
+                mouse_logic.reset_end();
             }
         }
     }
@@ -364,6 +304,7 @@ int  main() {
     // 设置进程优先级
     setProcessPriority();
 
+
     // 创建截图线程并加入线程池
     pool.enqueue(screenshotThread);
 
@@ -374,13 +315,12 @@ int  main() {
     pool.enqueue([&aiInferenceModule] { aiInferenceThread(aiInferenceModule); });
 
 
-    //guiModule.start();
     udpSender.start();
     guiModule.start();
 
     // 设置键鼠钩子
     setHooks();
-    guiModule.hideWindow();
+    
     // 消息循环
     MSG msg;
     while (running && GetMessage(&msg, nullptr, 0, 0)) {

@@ -3,6 +3,14 @@
 
 #include <string>
 #include <atomic>
+#include <opencv2/opencv.hpp>
+typedef struct _DL_RESULT
+{
+    int classId;
+    float confidence;
+    cv::Rect box;
+    std::vector<cv::Point2f> keyPoints;
+} DL_RESULT;
 
 // 连续发射子弹数量
 inline int bullet_count = 1;
@@ -23,11 +31,17 @@ inline float aim_strength2 = 4.0f;
 // 是否显示图像
 inline std::atomic<bool> show_image{ true };
 
+// 鼠标移动暂停时间ms
+inline int mouse_move_pause = 1;
+
+// 最小置信度
+inline float min_confidence = 0.7f;
+
 // 模型路径
 //inline std::string model_path = "C:/Users/pc/Desktop/yolov10-102.onnx";
 //inline std::string model_path = "C:/Users/pc/Desktop/yolov10n2.onnx";
-inline std::string model_path = "C:/Users/pc/Desktop/yolov5.onnx";
-//inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
+//inline std::string model_path = "C:/Users/pc/Desktop/yolov5.onnx";
+inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx";
 

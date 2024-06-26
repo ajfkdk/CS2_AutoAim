@@ -1,6 +1,7 @@
 #include "inference.h"
 #include <regex>
 
+
 #define benchmark
 #define USE_CUDA
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
@@ -125,7 +126,7 @@ char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
             cudaEnable = iParams.cudaEnable;
             OrtCUDAProviderOptions cudaOption;
             cudaOption.device_id = 0;
-            cudaOption.do_copy_in_default_stream = 0; // 设置 do_copy_in_default_stream 为 0
+            //cudaOption.do_copy_in_default_stream = 0; // 设置 do_copy_in_default_stream 为 0
 
             sessionOption.AppendExecutionProvider_CUDA(cudaOption);
         }
@@ -288,7 +289,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
             float max_score = *std::max_element(classes_scores, classes_scores + (numAttributes - 4));
 
             // 如果置信度超过阈值，则处理该检测框
-            if (max_score >= rectConfidenceThreshold) {
+            if (max_score >= min_confidence) {
                 int class_id = std::distance(classes_scores, std::max_element(classes_scores, classes_scores + (numAttributes - 4)));
 
                 // 提取边界框坐标

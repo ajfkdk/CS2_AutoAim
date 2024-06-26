@@ -7,7 +7,7 @@
 #include <direct.h>
 #include <io.h>
 #endif
-
+#include <global_config.h>
 #include <string>
 #include <vector>
 #include <cstdio>
@@ -52,13 +52,7 @@ typedef struct _DL_INIT_PARAM
 } DL_INIT_PARAM;
 
 
-typedef struct _DL_RESULT
-{
-    int classId;
-    float confidence;
-    cv::Rect box;
-    std::vector<cv::Point2f> keyPoints;
-} DL_RESULT;
+
 
 
 class YOLO_V8
