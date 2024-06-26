@@ -125,6 +125,8 @@ char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
             cudaEnable = iParams.cudaEnable;
             OrtCUDAProviderOptions cudaOption;
             cudaOption.device_id = 0;
+            cudaOption.do_copy_in_default_stream = 0; // 设置 do_copy_in_default_stream 为 0
+
             sessionOption.AppendExecutionProvider_CUDA(cudaOption);
         }
 
@@ -133,6 +135,7 @@ char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
 
         // 设置线程数和日志级别
         sessionOption.SetIntraOpNumThreads(iParams.intraOpNumThreads);
+
         sessionOption.SetLogSeverityLevel(iParams.logSeverityLevel);
 
 #ifdef _WIN32
@@ -406,7 +409,97 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::
         }
 #endif // benchmark
     }
+    case YOLO_DETECT_V5:
+    {
+        int numDetections = outputNodeDims[2]; // 表示检测框的数量 2100
+        int numAttributes = outputNodeDims[1]; // 表示每个检测框的属性数量（8）
 
+        std::vector<int> class_ids; // 用于存储类别ID的向量
+        std::vector<float> confidences; // 用于存储置信度的向量
+        std::vector<cv::Rect> boxes; // 用于存储检测到的矩形框的向量
+
+        cv::Mat rawData = cv::Mat(numAttributes, numDetections, CV_32F, output);
+        cv::Mat transposedData;
+        cv::transpose(rawData, transposedData); // 转置矩阵
+
+        float* data = (float*)transposedData.data; // 获取转置后矩阵数据的指针
+
+
+        for (int i = 0; i < numDetections; ++i) {
+
+            // 提取类别置信度
+            float* classes_scores = data + 4;
+            float max_score = *std::max_element(classes_scores, classes_scores + (numAttributes - 4));
+
+            // 如果置信度超过阈值，则处理该检测框
+            if (max_score >= rectConfidenceThreshold) {
+                int class_id = std::distance(classes_scores, std::max_element(classes_scores, classes_scores + (numAttributes - 4)));
+
+                // 提取边界框坐标
+                float x = data[0];
+                float y = data[1];
+                float w = data[2];
+                float h = data[3];
+
+                // 计算边框的左上角坐标
+                int left = int((x - 0.5 * w) * resizeScales);
+                int top = int((y - 0.5 * h) * resizeScales);
+
+                // 计算边框的宽和高
+                int width = int(w * resizeScales);
+                int height = int(h * resizeScales);
+
+                // 存储边框
+                boxes.emplace_back(left, top, width, height);
+                confidences.push_back(max_score);
+                class_ids.push_back(class_id);
+            }
+            data += numAttributes; // 移动到下一个检测框
+        }
+
+        std::vector<int> nmsResult;
+        // 确保在调用 NMSBoxes 之前，boxes 和 confidences 的长度一致
+        if (boxes.size() == confidences.size()) {
+            // 执行非极大值抑制（NMS）
+            cv::dnn::NMSBoxes(boxes, confidences, rectConfidenceThreshold, iouThreshold, nmsResult);
+
+            // 保存最终的检测结果
+            for (int i = 0; i < nmsResult.size(); ++i) {
+                int idx = nmsResult[i];
+                DL_RESULT result;
+                result.classId = class_ids[idx];
+                result.confidence = confidences[idx];
+                result.box = boxes[idx];
+                oResult.push_back(result);
+            }
+        }
+        else {
+            std::cerr << "Error: The number of boxes and confidences must be equal before applying NMS." << std::endl;
+            return RET_OK;
+        }
+
+#ifdef benchmark
+        // 记录后处理结束时间
+        clock_t starttime_4 = clock();
+
+        // 计算处理时间
+        double pre_process_time = (double)(starttime_2 - starttime_1) / CLOCKS_PER_SEC * 1000;
+        double process_time = (double)(starttime_3 - starttime_2) / CLOCKS_PER_SEC * 1000;
+        double post_process_time = (double)(starttime_4 - starttime_3) / CLOCKS_PER_SEC * 1000;
+
+        // 输出处理时间
+        if (cudaEnable)
+        {
+            std::cout << "[YOLO_V5(CUDA)]: " << pre_process_time << "ms pre-process, " << process_time << "ms inference, " << post_process_time << "ms post-process." << std::endl;
+        }
+        else
+        {
+            std::cout << "[YOLO_V5(CPU)]: " << pre_process_time << "ms pre-process, " << process_time << "ms inference, " << post_process_time << "ms post-process." << std::endl;
+        }
+#endif // benchmark
+
+        break;
+    }
     return RET_OK;
 
     }

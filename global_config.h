@@ -26,7 +26,8 @@ inline std::atomic<bool> show_image{ true };
 // Ä£ÐÍÂ·¾¶
 //inline std::string model_path = "C:/Users/pc/Desktop/yolov10-102.onnx";
 //inline std::string model_path = "C:/Users/pc/Desktop/yolov10n2.onnx";
-inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
+inline std::string model_path = "C:/Users/pc/Desktop/yolov5.onnx";
+//inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx";
 

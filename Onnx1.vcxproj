@@ -71,8 +71,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\include;D:\Develop\onnx\onnxruntime-win-x64-gpu-1.13.1\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64;D:\Develop\onnx\onnxruntime-win-x64-gpu-1.13.1\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\include;D:\Develop\onnx\onnxruntime-win-x64-gpu-1.18.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64;D:\Develop\onnx\onnxruntime-win-x64-gpu-1.18.0\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>D:\Develop\onnx\onnxruntime-win-x64-gpu-1.13.1\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\include;$(IncludePath)</IncludePath>
@@ -155,6 +155,7 @@
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="MouseController.cpp" />
+    <ClCompile Include="mouse_logic.cpp" />
     <ClCompile Include="ScreanshotModule.cpp" />
     <ClCompile Include="inference.cpp" />
     <ClCompile Include="main.cpp" />
@@ -177,6 +178,7 @@
     <ClInclude Include="imgui\imstb_textedit.h" />
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="MouseController.h" />
+    <ClInclude Include="mouse_logic.h" />
     <ClInclude Include="ScreanshotModule.h" />
     <ClInclude Include="inference.h" />
     <ClInclude Include="ThreadPool.h" />

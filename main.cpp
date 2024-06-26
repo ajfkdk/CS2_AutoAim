@@ -13,7 +13,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
-
+#include "mouse_logic.cpp"  
 
 bool debugAI = false;
 bool debugCapture = true;
@@ -408,7 +408,7 @@ int main12() {
     AIInferenceModule aiInferenceModule;
 
     // 读取图片
-    std::string imagePath = "C:/Users/pc/Desktop/Snipaste_2024-06-17_21-35-30.png";
+    std::string imagePath = "C:/Users/pc/Desktop/Snipaste_2024-06-17_21-35-30.jpg";
     cv::Mat image = cv::imread(imagePath);
 
     if (image.empty()) {
