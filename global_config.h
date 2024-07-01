@@ -1,6 +1,7 @@
 #ifndef GLOBAL_CONFIG_H
 #define GLOBAL_CONFIG_H
 
+#include <opencv2/opencv.hpp>
 #include <string>
 #include <atomic>
 
@@ -21,13 +22,24 @@ inline float aim_strength = 3.0f;
 inline float aim_strength2 = 4.0f;
 
 // 是否显示图像
-inline std::atomic<bool> show_image{ true };
+inline std::atomic<bool> show_image{ false };
 
 // 模型路径
 //inline std::string model_path = "C:/Users/pc/Desktop/yolov10-102.onnx";
 //inline std::string model_path = "C:/Users/pc/Desktop/yolov10n2.onnx";
-inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
+inline std::string model_path = "C:/Users/pc/Desktop/yolov8n640.onnx";
+//inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx";
+
+
+
+typedef struct _DL_RESULT
+{
+    int classId;
+    float confidence;
+    cv::Rect box;
+    std::vector<cv::Point2f> keyPoints;
+} DL_RESULT;
 
 #endif // GLOBAL_CONFIG_H

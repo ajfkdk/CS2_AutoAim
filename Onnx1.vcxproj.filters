@@ -60,6 +60,9 @@
     <ClCompile Include="GUIModule.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="KalmanFilterModule.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\PycharmProjects\pythonProject\yolov8n.onnx">
@@ -116,6 +119,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="global_config.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="KalmanFilterModule.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

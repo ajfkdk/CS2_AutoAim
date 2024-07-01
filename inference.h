@@ -13,13 +13,12 @@
 #include <cstdio>
 #include <opencv2/opencv.hpp>
 #include "onnxruntime_cxx_api.h"
-
+#include "global_config.h"
 #ifdef USE_CUDA
 #include <cuda_fp16.h>
 #endif
 
-// 模型输入的维度
-#define INPUT_SIZE 320
+
 
 enum MODEL_TYPE
 {
@@ -41,7 +40,7 @@ typedef struct _DL_INIT_PARAM
 {
     std::string modelPath;
     MODEL_TYPE modelType = YOLO_DETECT_V10;
-    std::vector<int> imgSize = { INPUT_SIZE, INPUT_SIZE };
+    std::vector<int> imgSize = { 640, 640 };
     float rectConfidenceThreshold = 0.8;
     float iouThreshold = 0.5;
     int	keyPointsNum = 2;//Note:kpt number for pose
@@ -51,13 +50,7 @@ typedef struct _DL_INIT_PARAM
 } DL_INIT_PARAM;
 
 
-typedef struct _DL_RESULT
-{
-    int classId;
-    float confidence;
-    cv::Rect box;
-    std::vector<cv::Point2f> keyPoints;
-} DL_RESULT;
+
 
 
 class YOLO_V8

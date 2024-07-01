@@ -1,6 +1,7 @@
 #include "ScreanshotModule.h"
 #include <iostream>
 #include <chrono>
+#include <global_config.h>
 
 HDC hdesktop = GetDC(NULL);
 HDC hdc = CreateCompatibleDC(hdesktop);
@@ -45,8 +46,8 @@ cv::Mat capture_region(int left, int top, int right, int bottom) {
 RECT get_center_region() {
     int screen_width = GetSystemMetrics(SM_CXSCREEN);
     int screen_height = GetSystemMetrics(SM_CYSCREEN);
-    int region_width = 320;
-    int region_height = 320;
+    int region_width = 640;
+    int region_height = 640;
 
     RECT rect;
     rect.left = (screen_width - region_width) / 2;
