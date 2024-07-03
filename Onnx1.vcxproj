@@ -178,6 +178,7 @@
     <ClCompile Include="ScreanshotModule.cpp" />
     <ClCompile Include="inference.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="TCPSender.cpp" />
     <ClCompile Include="UDPSender.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -199,6 +200,7 @@
     <ClInclude Include="MouseController.h" />
     <ClInclude Include="ScreanshotModule.h" />
     <ClInclude Include="inference.h" />
+    <ClInclude Include="TCPSender.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="UDPSender.h" />
   </ItemGroup>
