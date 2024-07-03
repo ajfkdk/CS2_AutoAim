@@ -1,7 +1,7 @@
 #include "inference.h"
 #include <regex>
 
-#define benchmark
+//#define benchmark
 #define USE_CUDA
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 YOLO_V8::YOLO_V8() {

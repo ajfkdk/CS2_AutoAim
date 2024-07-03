@@ -26,8 +26,9 @@ inline std::atomic<bool> show_image{ true };
 // 模型路径
 //inline std::string model_path = "C:/Users/pc/Desktop/yolov10-102.onnx";
 //inline std::string model_path = "C:/Users/pc/Desktop/yolov10n2.onnx";
-inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
-//inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/yolov8n.onnx";
+//inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
+//当前目录下的model文件夹的yolov8n.onnx
+inline std::string model_path = "./123.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx";
 
 #endif // GLOBAL_CONFIG_H

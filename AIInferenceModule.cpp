@@ -1,6 +1,7 @@
 #include "AIInferenceModule.h"
 #include "global_config.h"
 #include <iostream>
+#include <filesystem> // C++17及以上版本
 #define CUDA
 
 AIInferenceModule::AIInferenceModule() {
@@ -20,6 +21,22 @@ void AIInferenceModule::initializeDetector() {
     params.iouThreshold = 0.5;
     params.modelPath = model_path;
     params.imgSize = { INPUT_SIZE, INPUT_SIZE };
+
+    // 打印当前工作目录
+    std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
+
+    // 打印模型文件的绝对路径
+    std::filesystem::path absolute_path = std::filesystem::absolute(model_path);
+    std::cout << "Model absolute path: " << absolute_path << std::endl;
+
+    // 检查文件是否存在
+    if (std::filesystem::exists(absolute_path)) {
+        std::cout << "Model file exists." << std::endl;
+    }
+    else {
+        std::cerr << "Model file does not exist." << std::endl;
+        // 可能想要在这里添加错误处理逻辑
+    }
 
 #ifdef USE_CUDA
     params.cudaEnable = true;

@@ -13,10 +13,10 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <cuda_runtime.h>
 
-
-bool debugAI = false;
-bool debugCapture = true;
+bool debugAI = true;
+bool debugCapture = false;
 
 cv::Mat globalImageData;
 cv::Mat globalProcessedImage;
@@ -111,6 +111,7 @@ void aiInferenceThread(AIInferenceModule& aiInferenceModule) {
                 auto results = aiInferenceModule.processImage(imageToProcess);
                 writeBuffer->assign(results.begin(), results.end());
                 newDataAvailable.store(true, std::memory_order_release);
+                std::cout<<"AI process:" << newDataAvailable.load(std::memory_order_acquire) << std::endl;
                 std::swap(writeBuffer, readBuffer);
                 auto end = std::chrono::high_resolution_clock::now();
                 if (debugAI) {
@@ -358,7 +359,58 @@ void removeHooks() {
 //    return 0;
 //}
 //
+void checkCUDA() {
+    // Initialize CUDA
+    cudaError_t cudaStatus = cudaFree(0);
+    if (cudaStatus != cudaSuccess) {
+        std::cerr << "CUDA initialization failed! Error: " << cudaGetErrorString(cudaStatus) << std::endl;
+        return;
+    }
+
+    // Get CUDA driver version
+    int driverVersion = 0;
+    cudaStatus = cudaDriverGetVersion(&driverVersion);
+    if (cudaStatus != cudaSuccess) {
+        std::cerr << "Failed to get CUDA driver version! Error: " << cudaGetErrorString(cudaStatus) << std::endl;
+        return;
+    }
+
+    // Get CUDA runtime version
+    int runtimeVersion = 0;
+    cudaStatus = cudaRuntimeGetVersion(&runtimeVersion);
+    if (cudaStatus != cudaSuccess) {
+        std::cerr << "Failed to get CUDA runtime version! Error: " << cudaGetErrorString(cudaStatus) << std::endl;
+        return;
+    }
+
+    // Get the number of CUDA devices
+    int deviceCount = 0;
+    cudaStatus = cudaGetDeviceCount(&deviceCount);
+    if (cudaStatus != cudaSuccess) {
+        std::cerr << "Failed to get CUDA device count! Error: " << cudaGetErrorString(cudaStatus) << std::endl;
+        return;
+    }
+
+    if (deviceCount == 0) {
+        std::cout << "No CUDA devices found." << std::endl;
+    }
+    else {
+        std::cout << "CUDA is available. Number of CUDA devices: " << deviceCount << std::endl;
+        std::cout << "CUDA Driver Version: " << driverVersion / 1000 << "." << (driverVersion % 100) / 10 << std::endl;
+        std::cout << "CUDA Runtime Version: " << runtimeVersion / 1000 << "." << (runtimeVersion % 100) / 10 << std::endl;
+    }
+}
+
+void checkONNXRuntime() {
+    // Get ONNX Runtime version
+    auto version = Ort::GetVersionString();
+    std::cout << "ONNX Runtime version: " << version << std::endl;
+}
+
+
 int  main() {
+    checkCUDA();
+    //checkONNXRuntime();
     // 获取主线程 ID
     mainThreadId = GetCurrentThreadId();
     // 设置进程优先级
@@ -380,7 +432,6 @@ int  main() {
 
     // 设置键鼠钩子
     setHooks();
-    guiModule.hideWindow();
     // 消息循环
     MSG msg;
     while (running && GetMessage(&msg, nullptr, 0, 0)) {
@@ -401,6 +452,8 @@ int  main() {
 
     return 0;
 }
+
+
 
 
 int main12() {
