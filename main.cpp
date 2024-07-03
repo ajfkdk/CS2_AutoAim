@@ -546,7 +546,6 @@ const unsigned short SERVER_PORT = 18856;     // 替换为你的服务器端口
 
 boost::asio::ip::tcp::socket* global_socket = nullptr; // 全局socket指针
 
-
 void send_image(boost::asio::ip::tcp::socket& socket) {
     while (running) {
         auto start = std::chrono::high_resolution_clock::now();
@@ -562,6 +561,7 @@ void send_image(boost::asio::ip::tcp::socket& socket) {
 
         try {
             uint32_t protocol = htonl(3);  // 3 表示图片协议头
+            std::cout << "Sending protocol: 3 (IMAGE)" << std::endl;
             boost::asio::write(socket, boost::asio::buffer(&protocol, sizeof(protocol)));
 
             uint32_t img_size = htonl(img_bytes.size());
@@ -586,9 +586,9 @@ void send_image(boost::asio::ip::tcp::socket& socket) {
 
 LRESULT CALLBACK MouseHookProc234(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION) {
-        if (wParam == WM_XBUTTONDOWN) {
-            MSLLHOOKSTRUCT* pMouseStruct = (MSLLHOOKSTRUCT*)lParam;
-            if (pMouseStruct != nullptr) {
+        MSLLHOOKSTRUCT* pMouseStruct = (MSLLHOOKSTRUCT*)lParam;
+        if (pMouseStruct != nullptr) {
+            if (wParam == WM_XBUTTONDOWN) {
                 if (HIWORD(pMouseStruct->mouseData) == XBUTTON1) {
                     std::cout << "XBUTTON1 pressed" << std::endl;
                     if (global_socket) {
@@ -599,24 +599,26 @@ LRESULT CALLBACK MouseHookProc234(int nCode, WPARAM wParam, LPARAM lParam) {
                 else if (HIWORD(pMouseStruct->mouseData) == XBUTTON2) {
                     std::cout << "XBUTTON2 pressed" << std::endl;
                     if (global_socket) {
-                        uint32_t protocol = htonl(2);  // 2 表示 MOUSE_BOX2 协议头
+                        uint32_t protocol = htonl(2);  // 2 表示 MOUSE_XBOX2 协议头
                         boost::asio::write(*global_socket, boost::asio::buffer(&protocol, sizeof(protocol)));
                     }
                 }
-                else if(HIWORD(pMouseStruct->mouseData) == XBUTTON1){
-					std::cout << "XBUTTON1 released" << std::endl;
-					if (global_socket) {
-						uint32_t protocol = htonl(4);  // 4 表示 MOUSE_XBOX1_RELEASE 协议头
-						boost::asio::write(*global_socket, boost::asio::buffer(&protocol, sizeof(protocol)));
-					}
-				}
-				else if(HIWORD(pMouseStruct->mouseData) == XBUTTON2){
-					std::cout << "XBUTTON2 released" << std::endl;
-					if (global_socket) {
-						uint32_t protocol = htonl(5);  // 5 表示 MOUSE_XBOX2_RELEASE 协议头
-						boost::asio::write(*global_socket, boost::asio::buffer(&protocol, sizeof(protocol)));
-					}
-				}
+            }
+            else if (wParam == WM_XBUTTONUP) {
+                if (HIWORD(pMouseStruct->mouseData) == XBUTTON1) {
+                    std::cout << "XBUTTON1 released" << std::endl;
+                    if (global_socket) {
+                        uint32_t protocol = htonl(4);  // 4 表示 MOUSE_XBOX1_RELEASE 协议头
+                        boost::asio::write(*global_socket, boost::asio::buffer(&protocol, sizeof(protocol)));
+                    }
+                }
+                else if (HIWORD(pMouseStruct->mouseData) == XBUTTON2) {
+                    std::cout << "XBUTTON2 released" << std::endl;
+                    if (global_socket) {
+                        uint32_t protocol = htonl(5);  // 5 表示 MOUSE_XBOX2_RELEASE 协议头
+                        boost::asio::write(*global_socket, boost::asio::buffer(&protocol, sizeof(protocol)));
+                    }
+                }
             }
         }
     }
