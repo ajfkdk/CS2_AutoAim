@@ -432,19 +432,8 @@ int  main123() {
     udpSender.start();
     guiModule.start();
 
-    // 设置键鼠钩子
-    setHooks();
-    // 消息循环
-    MSG msg;
-    while (running && GetMessage(&msg, nullptr, 0, 0)) {
-        std::cout << "111 Main thread running: " << running.load() << std::endl;
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-    std::cout << "Main thread running: " << running.load() << std::endl;
 
-    // 移除钩子
-    removeHooks();
+  
 
     // 停止所有线程
     running = false;
@@ -462,6 +451,7 @@ int  main() {
     setProcessPriority();
 
     tcpSender.setImageBuffers(&bufferImage1, &bufferImage2, &imageBufferReady);
+    tcpSender.setStatus(&isXButton1Pressed, &isXButton2Pressed);
 
     std::thread tcpSenderThread([&]() {
         tcpSender.start();
@@ -482,19 +472,20 @@ int  main() {
     guiModule.start();
 
     // 设置键鼠钩子
-    setHooks();
-    guiModule.hideWindow();
-    // 消息循环
-    MSG msg;
-    while (running && GetMessage(&msg, nullptr, 0, 0)) {
-        std::cout << "111 Main thread running: " << running.load() << std::endl;
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+    while (running) {
+        if (isXButton1Pressed.load(std::memory_order_acquire)) {
+            std::cout<<"接收到侧键1按下事件"<<std::endl;
+            pool.enqueue(processXButton1);
+        }
+        if (isXButton2Pressed.load(std::memory_order_acquire)) {
+            std::cout << "接收到侧键1按下事件" << std::endl;
+			pool.enqueue(processXButton2);
+		}
+        //暂停5ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     std::cout << "Main thread running: " << running.load() << std::endl;
 
-    // 移除钩子
-    removeHooks();
 
     // 停止所有线程
     running = false;

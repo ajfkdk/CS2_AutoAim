@@ -17,6 +17,11 @@ public:
     void setImageBuffers(cv::Mat* writeBuffer, cv::Mat* readBuffer, std::atomic<bool>* bufferReady);
     void start();
     void stop();
+    void handleMouseBox2Press();
+    void handleMouseXbox1Press();
+    void handleMouseBox2Release();
+    void handleMouseXbox1Release();
+    void setStatus(std::atomic_bool* isXbutton1, std::atomic_bool* isXbutton2);
 
 private:
     void acceptConnections();
@@ -31,6 +36,8 @@ private:
     cv::Mat* writeImageBuffer;
     cv::Mat* readImageBuffer;
     std::atomic<bool>* imageBufferReady;
+    std::atomic<bool> isXButton1Pressed{ false };
+    std::atomic<bool> isXButton2Pressed{ false };
 };
 
 #endif // TCPSENDER_H
