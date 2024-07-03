@@ -455,7 +455,7 @@ int  main123() {
     return 0;
 }
 
-int  main() {
+int  main231() {
     // 获取主线程 ID
     mainThreadId = GetCurrentThreadId();
     // 设置进程优先级
@@ -512,6 +512,7 @@ int  main() {
 
 
 
+
 int main12() {
     // 创建 AI 推理模块
     AIInferenceModule aiInferenceModule;
@@ -531,6 +532,157 @@ int main12() {
     // 输出推理结果
     for (const auto& result : results) {
         std::cout << "Detection: " << result.box.x << ", " << result.box.y << ", " << result.box.width << ", " << result.box.height << std::endl;
+    }
+
+    return 0;
+}
+
+
+const std::string SERVER_IP = "192.168.8.6";  // 替换为你的服务器IP地址
+const unsigned short SERVER_PORT = 18856;
+
+void send_image(boost::asio::ip::tcp::socket& socket) {
+    while (running) {
+        auto start = std::chrono::high_resolution_clock::now();
+
+        cv::Mat newImage = capture_center_screen();
+        std::vector<uchar> img_bytes;
+        cv::imencode(".jpg", newImage, img_bytes, { cv::IMWRITE_JPEG_QUALITY, 85 });
+
+        // 发送图像长度和图像数据
+        try {
+            uint32_t img_size = htonl(img_bytes.size());
+            boost::asio::write(socket, boost::asio::buffer(&img_size, sizeof(img_size)));
+            boost::asio::write(socket, boost::asio::buffer(img_bytes));
+        }
+        catch (std::exception& e) {
+            std::cerr << "连接中断: " << e.what() << std::endl;
+            break;
+        }
+
+        auto end = std::chrono::high_resolution_clock::now();
+        if (debugCapture) {
+            std::chrono::duration<double> elapsed = end - start;
+            std::cout << "Screenshot time: " << elapsed.count() * 1000 << " ms" << std::endl;
+        }
+     
+
+    }
+}
+
+const std::string SERVER_IP = "192.168.8.6";  // 替换为你的服务器IP地址
+const unsigned short SERVER_PORT = 18856;     // 替换为你的服务器端口
+std::atomic<bool> running(true);
+bool debugCapture = true;
+boost::asio::ip::tcp::socket* global_socket = nullptr; // 全局socket指针
+
+
+void send_image(boost::asio::ip::tcp::socket& socket) {
+    while (running) {
+        auto start = std::chrono::high_resolution_clock::now();
+
+        cv::Mat newImage = capture_center_screen();
+        if (newImage.empty()) {
+            std::cerr << "Failed to capture center screen." << std::endl;
+            continue;
+        }
+
+        std::vector<uchar> img_bytes;
+        cv::imencode(".jpg", newImage, img_bytes, { cv::IMWRITE_JPEG_QUALITY, 85 });
+
+        try {
+            uint32_t protocol = htonl(3);  // 3 表示图片协议头
+            boost::asio::write(socket, boost::asio::buffer(&protocol, sizeof(protocol)));
+
+            uint32_t img_size = htonl(img_bytes.size());
+            boost::asio::write(socket, boost::asio::buffer(&img_size, sizeof(img_size)));
+            boost::asio::write(socket, boost::asio::buffer(img_bytes));
+        }
+        catch (std::exception& e) {
+            std::cerr << "连接中断: " << e.what() << std::endl;
+            break;
+        }
+
+        auto end = std::chrono::high_resolution_clock::now();
+        if (debugCapture) {
+            std::chrono::duration<double> elapsed = end - start;
+            std::cout << "Screenshot time: " << elapsed.count() * 1000 << " ms" << std::endl;
+        }
+
+        // 暂停5ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+}
+
+LRESULT CALLBACK MouseHookProc234(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode == HC_ACTION) {
+        if (wParam == WM_XBUTTONDOWN) {
+            MSLLHOOKSTRUCT* pMouseStruct = (MSLLHOOKSTRUCT*)lParam;
+            if (pMouseStruct != nullptr) {
+                if (HIWORD(pMouseStruct->mouseData) == XBUTTON1) {
+                    std::cout << "XBUTTON1 pressed" << std::endl;
+                    if (global_socket) {
+                        uint32_t protocol = htonl(1);  // 1 表示 MOUSE_XBOX1 协议头
+                        boost::asio::write(*global_socket, boost::asio::buffer(&protocol, sizeof(protocol)));
+                    }
+                }
+                else if (HIWORD(pMouseStruct->mouseData) == XBUTTON2) {
+                    std::cout << "XBUTTON2 pressed" << std::endl;
+                    if (global_socket) {
+                        uint32_t protocol = htonl(2);  // 2 表示 MOUSE_BOX2 协议头
+                        boost::asio::write(*global_socket, boost::asio::buffer(&protocol, sizeof(protocol)));
+                    }
+                }
+            }
+        }
+    }
+    return CallNextHookEx(nullptr, nCode, wParam, lParam);
+}
+
+
+void main_thread() {
+    try {
+        boost::asio::io_context io_context;
+        boost::asio::ip::tcp::socket socket(io_context);
+        boost::asio::ip::tcp::resolver resolver(io_context);
+        boost::asio::connect(socket, resolver.resolve(SERVER_IP, std::to_string(SERVER_PORT)));
+
+        // 将全局socket指针指向当前socket
+        global_socket = &socket;
+
+        // 安装鼠标钩子
+        HHOOK mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookProc234, NULL, 0);
+        if (!mouseHook) {
+            std::cerr << "Failed to install mouse hook!" << std::endl;
+            return;
+        }
+
+        // 创建并启动发送图像线程
+        std::thread send_thread(send_image, std::ref(socket));
+
+        // 保持主线程运行以处理钩子回调
+        MSG msg;
+        while (GetMessage(&msg, nullptr, 0, 0)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
+        running = false;
+        send_thread.join();
+
+        UnhookWindowsHookEx(mouseHook);
+    }
+    catch (std::exception& e) {
+        std::cerr << "异常: " << e.what() << std::endl;
+    }
+}
+
+int main() {
+    try {
+        main_thread();
+    }
+    catch (std::exception& e) {
+        std::cerr << "未捕获的异常: " << e.what() << std::endl;
     }
 
     return 0;
