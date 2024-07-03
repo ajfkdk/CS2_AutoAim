@@ -465,7 +465,7 @@ int  main() {
 
     std::thread tcpSenderThread([&]() {
         tcpSender.start();
-        });
+     });
 
     // 创建 TCP 图像接收线程并加入线程池
 

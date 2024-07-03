@@ -31,4 +31,8 @@ inline std::atomic<bool> show_image{ true };
 inline std::string model_path = "./123.onnx";
 //inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx";
 
+//tcp²ÎÊý
+inline std::string tcp_ip = "0.0.0.0";
+inline unsigned short tcp_port = 18856;
+
 #endif // GLOBAL_CONFIG_H

@@ -58,6 +58,8 @@ void TCPSender::handleClient(boost::asio::ip::tcp::socket socket) {
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
             std::cout << "TCP IMG time: " << elapsed.count() * 1000 << " ms" << std::endl;
+            //cv::imshow("TCP", img);
+            //cv::waitKey(1);
 
         }
     }
