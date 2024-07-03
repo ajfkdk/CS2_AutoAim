@@ -538,42 +538,12 @@ int main12() {
 }
 
 
-const std::string SERVER_IP = "192.168.8.6";  // 替换为你的服务器IP地址
-const unsigned short SERVER_PORT = 18856;
 
-void send_image(boost::asio::ip::tcp::socket& socket) {
-    while (running) {
-        auto start = std::chrono::high_resolution_clock::now();
 
-        cv::Mat newImage = capture_center_screen();
-        std::vector<uchar> img_bytes;
-        cv::imencode(".jpg", newImage, img_bytes, { cv::IMWRITE_JPEG_QUALITY, 85 });
-
-        // 发送图像长度和图像数据
-        try {
-            uint32_t img_size = htonl(img_bytes.size());
-            boost::asio::write(socket, boost::asio::buffer(&img_size, sizeof(img_size)));
-            boost::asio::write(socket, boost::asio::buffer(img_bytes));
-        }
-        catch (std::exception& e) {
-            std::cerr << "连接中断: " << e.what() << std::endl;
-            break;
-        }
-
-        auto end = std::chrono::high_resolution_clock::now();
-        if (debugCapture) {
-            std::chrono::duration<double> elapsed = end - start;
-            std::cout << "Screenshot time: " << elapsed.count() * 1000 << " ms" << std::endl;
-        }
-     
-
-    }
-}
 
 const std::string SERVER_IP = "192.168.8.6";  // 替换为你的服务器IP地址
 const unsigned short SERVER_PORT = 18856;     // 替换为你的服务器端口
-std::atomic<bool> running(true);
-bool debugCapture = true;
+
 boost::asio::ip::tcp::socket* global_socket = nullptr; // 全局socket指针
 
 
@@ -633,6 +603,20 @@ LRESULT CALLBACK MouseHookProc234(int nCode, WPARAM wParam, LPARAM lParam) {
                         boost::asio::write(*global_socket, boost::asio::buffer(&protocol, sizeof(protocol)));
                     }
                 }
+                else if(HIWORD(pMouseStruct->mouseData) == XBUTTON1){
+					std::cout << "XBUTTON1 released" << std::endl;
+					if (global_socket) {
+						uint32_t protocol = htonl(4);  // 4 表示 MOUSE_XBOX1_RELEASE 协议头
+						boost::asio::write(*global_socket, boost::asio::buffer(&protocol, sizeof(protocol)));
+					}
+				}
+				else if(HIWORD(pMouseStruct->mouseData) == XBUTTON2){
+					std::cout << "XBUTTON2 released" << std::endl;
+					if (global_socket) {
+						uint32_t protocol = htonl(5);  // 5 表示 MOUSE_XBOX2_RELEASE 协议头
+						boost::asio::write(*global_socket, boost::asio::buffer(&protocol, sizeof(protocol)));
+					}
+				}
             }
         }
     }
