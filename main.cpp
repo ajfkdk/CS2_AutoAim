@@ -539,12 +539,19 @@ int main12() {
 
 
 
+const std::string IMAGE_SERVER_IP = "192.168.8.6";  // 替换为你的图像服务器IP地址
+const unsigned short IMAGE_SERVER_PORT = 18856;     // 替换为你的图像服务器端口
 
+const std::string KEY_SERVER_IP = "192.168.8.6";    // 替换为你的按键服务器IP地址
+const unsigned short KEY_SERVER_PORT = 18857;       // 替换为你的按键服务器端口
 
-const std::string SERVER_IP = "192.168.8.6";  // 替换为你的服务器IP地址
-const unsigned short SERVER_PORT = 18856;     // 替换为你的服务器端口
-
+std::atomic<bool> running(true);
 boost::asio::ip::tcp::socket* global_socket = nullptr; // 全局socket指针
+
+cv::Mat capture_center_screen() {
+    // 替换为你的屏幕截图函数
+    return cv::Mat();
+}
 
 void send_image(boost::asio::ip::tcp::socket& socket) {
     while (running) {
@@ -560,10 +567,6 @@ void send_image(boost::asio::ip::tcp::socket& socket) {
         cv::imencode(".jpg", newImage, img_bytes, { cv::IMWRITE_JPEG_QUALITY, 85 });
 
         try {
-            uint32_t protocol = htonl(3);  // 3 表示图片协议头
-            std::cout << "Sending protocol: 3 (IMAGE)" << std::endl;
-            boost::asio::write(socket, boost::asio::buffer(&protocol, sizeof(protocol)));
-
             uint32_t img_size = htonl(img_bytes.size());
             boost::asio::write(socket, boost::asio::buffer(&img_size, sizeof(img_size)));
             boost::asio::write(socket, boost::asio::buffer(img_bytes));
@@ -574,10 +577,8 @@ void send_image(boost::asio::ip::tcp::socket& socket) {
         }
 
         auto end = std::chrono::high_resolution_clock::now();
-        if (debugCapture) {
-            std::chrono::duration<double> elapsed = end - start;
-            std::cout << "Screenshot time: " << elapsed.count() * 1000 << " ms" << std::endl;
-        }
+        std::chrono::duration<double> elapsed = end - start;
+        std::cout << "Screenshot time: " << elapsed.count() * 1000 << " ms" << std::endl;
 
         // 暂停5ms
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -625,50 +626,69 @@ LRESULT CALLBACK MouseHookProc234(int nCode, WPARAM wParam, LPARAM lParam) {
     return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 
+void send_mouse_events(boost::asio::ip::tcp::socket& socket) {
+    // 安装鼠标钩子
+    HHOOK mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookProc234, NULL, 0);
+    if (!mouseHook) {
+        std::cerr << "Failed to install mouse hook!" << std::endl;
+        return;
+    }
 
-void main_thread() {
+    // 保持线程运行以处理钩子回调
+    MSG msg;
+    while (GetMessage(&msg, nullptr, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    UnhookWindowsHookEx(mouseHook);
+}
+
+void image_thread() {
     try {
         boost::asio::io_context io_context;
         boost::asio::ip::tcp::socket socket(io_context);
         boost::asio::ip::tcp::resolver resolver(io_context);
-        boost::asio::connect(socket, resolver.resolve(SERVER_IP, std::to_string(SERVER_PORT)));
-
-        // 将全局socket指针指向当前socket
-        global_socket = &socket;
-
-        // 安装鼠标钩子
-        HHOOK mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookProc234, NULL, 0);
-        if (!mouseHook) {
-            std::cerr << "Failed to install mouse hook!" << std::endl;
-            return;
-        }
+        boost::asio::connect(socket, resolver.resolve(IMAGE_SERVER_IP, std::to_string(IMAGE_SERVER_PORT)));
 
         // 创建并启动发送图像线程
         std::thread send_thread(send_image, std::ref(socket));
 
-        // 保持主线程运行以处理钩子回调
-        MSG msg;
-        while (GetMessage(&msg, nullptr, 0, 0)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-
-        running = false;
         send_thread.join();
-
-        UnhookWindowsHookEx(mouseHook);
     }
     catch (std::exception& e) {
-        std::cerr << "异常: " << e.what() << std::endl;
+        std::cerr << "Image thread exception: " << e.what() << std::endl;
+    }
+}
+
+void key_thread() {
+    try {
+        boost::asio::io_context io_context;
+        boost::asio::ip::tcp::socket socket(io_context);
+        boost::asio::ip::tcp::resolver resolver(io_context);
+        boost::asio::connect(socket, resolver.resolve(KEY_SERVER_IP, std::to_string(KEY_SERVER_PORT)));
+
+        // 将全局socket指针指向当前按键socket
+        global_socket = &socket;
+
+        // 启动发送鼠标事件的线程
+        send_mouse_events(socket);
+    }
+    catch (std::exception& e) {
+        std::cerr << "Key thread exception: " << e.what() << std::endl;
     }
 }
 
 int main() {
     try {
-        main_thread();
+        std::thread img_thread(image_thread);
+        std::thread keys_thread(key_thread);
+
+        img_thread.join();
+        keys_thread.join();
     }
     catch (std::exception& e) {
-        std::cerr << "未捕获的异常: " << e.what() << std::endl;
+        std::cerr << "Main thread exception: " << e.what() << std::endl;
     }
 
     return 0;
