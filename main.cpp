@@ -643,6 +643,7 @@ void send_mouse_events(boost::asio::ip::tcp::socket& socket) {
 
 void image_thread() {
     try {
+        SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
         boost::asio::io_context io_context;
         boost::asio::ip::tcp::socket socket(io_context);
         boost::asio::ip::tcp::resolver resolver(io_context);
@@ -660,6 +661,7 @@ void image_thread() {
 
 void key_thread() {
     try {
+        SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
         boost::asio::io_context io_context;
         boost::asio::ip::tcp::socket socket(io_context);
         boost::asio::ip::tcp::resolver resolver(io_context);
@@ -678,6 +680,8 @@ void key_thread() {
 
 int main() {
     try {
+        // 设置进程优先级
+        setProcessPriority();
         std::thread img_thread(image_thread);
         std::thread keys_thread(key_thread);
 
