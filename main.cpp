@@ -16,7 +16,7 @@
 #include <cuda_runtime.h>
 #include <TCPSender.h>
 
-bool debugAI = true;
+bool debugAI = false;
 bool debugCapture = false;
 
 cv::Mat globalImageData;
