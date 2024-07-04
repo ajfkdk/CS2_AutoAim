@@ -59,7 +59,7 @@ HHOOK mouseHook;
 HHOOK keyboardHook;
 LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam);
 
-TCPSender tcpSender(tcp_ip, tcp_port);
+TCPSender tcpSender(tcp_ip, tcp_port,tcp_ip,tcp_port+1);
 // 将 udpSender 定义为全局变量
 UDPSender udpSender(udp_ip, udp_port);
 
