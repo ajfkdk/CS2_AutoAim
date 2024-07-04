@@ -539,10 +539,10 @@ int main12() {
 
 
 
-const std::string IMAGE_SERVER_IP = "192.168.8.6";  // 替换为你的图像服务器IP地址
+const std::string IMAGE_SERVER_IP = "192.168.8.21";  // 替换为你的图像服务器IP地址
 const unsigned short IMAGE_SERVER_PORT = 18856;     // 替换为你的图像服务器端口
 
-const std::string KEY_SERVER_IP = "192.168.8.6";    // 替换为你的按键服务器IP地址
+const std::string KEY_SERVER_IP = "192.168.8.21";    // 替换为你的按键服务器IP地址
 const unsigned short KEY_SERVER_PORT = 18857;       // 替换为你的按键服务器端口
 
 
