@@ -1,6 +1,7 @@
 #include "UDPSender.h"
 #include <cstring>
 #include <chrono>
+#include <iostream>
 
 UDPSender::UDPSender(const std::string& ip, unsigned short port)
     : socket(io_context, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0)),
@@ -24,6 +25,7 @@ void UDPSender::stop() {
 }
 
 void UDPSender::updatePosition(int x, int y) {
+    std::cout<< "updatePosition: " << x << ", " << y << std::endl;
     move_x.store(x);
     move_y.store(y);
     new_data_available.store(true);
