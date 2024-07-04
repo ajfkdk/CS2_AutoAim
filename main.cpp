@@ -545,13 +545,10 @@ const unsigned short IMAGE_SERVER_PORT = 18856;     // 替换为你的图像服�
 const std::string KEY_SERVER_IP = "192.168.8.6";    // 替换为你的按键服务器IP地址
 const unsigned short KEY_SERVER_PORT = 18857;       // 替换为你的按键服务器端口
 
-std::atomic<bool> running(true);
+
 boost::asio::ip::tcp::socket* global_socket = nullptr; // 全局socket指针
 
-cv::Mat capture_center_screen() {
-    // 替换为你的屏幕截图函数
-    return cv::Mat();
-}
+
 
 void send_image(boost::asio::ip::tcp::socket& socket) {
     while (running) {
