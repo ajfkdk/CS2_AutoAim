@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <cuda_runtime.h>
 
-bool debugAI = true;
+bool debugAI = false;
 bool debugCapture = false;
 
 cv::Mat globalImageData;
@@ -111,7 +111,6 @@ void aiInferenceThread(AIInferenceModule& aiInferenceModule) {
                 auto results = aiInferenceModule.processImage(imageToProcess);
                 writeBuffer->assign(results.begin(), results.end());
                 newDataAvailable.store(true, std::memory_order_release);
-                std::cout<<"AI process:" << newDataAvailable.load(std::memory_order_acquire) << std::endl;
                 std::swap(writeBuffer, readBuffer);
                 auto end = std::chrono::high_resolution_clock::now();
                 if (debugAI) {
