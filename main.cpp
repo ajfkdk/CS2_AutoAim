@@ -190,7 +190,8 @@ void burstFire() {
     for (int i = 0; i < bullet_count; ++i) {
         std::cout<< "Firing bullet " << i + 1 << std::endl;
         udpSender.sendLeftClick();
-        std::this_thread::sleep_for(std::chrono::milliseconds(150)); // 每发子弹之间稍微停顿
+        //100到600ms之间的随机数
+        std::this_thread::sleep_for(std::chrono::milliseconds(100 + rand() % 500));
     }
     //std::this_thread::sleep_for(std::chrono::milliseconds(300)); // 点射结束之后的停顿
     isFiring.store(false, std::memory_order_release);
@@ -228,7 +229,7 @@ void processXButton2() {
                 std::pair<int, int> movement = find_and_calculate_vector(*readBuffer,aim_strength);
                 int move_x = movement.first;
                 int move_y = movement.second;
-                udpSender.updatePosition(move_x, move_y);
+                udpSender.updatePosition(move_x, 0);
             }
         }
     }
