@@ -60,8 +60,7 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam);
 
 
 // 将 udpSender 定义为全局变量
-UDPSender udpSender(udp_ip, udp_port);
-
+UDPSender udpSender;
 
 //主线程ID用于发送WM_QUIT消息
 DWORD mainThreadId;
@@ -207,6 +206,7 @@ void processXButton1() {
                 std::pair<int, int> movement = find_and_calculate_vector(*readBuffer,aim_strength2);
                 int move_x = movement.first;
                 int move_y = movement.second;
+                std::cout << "move_x: " << move_x << " move_y: " << move_y << std::endl;
                 udpSender.updatePosition(move_x, move_y);
                 if (move_x >= -shoot_range && move_x <= shoot_range) {
                     if (!isFiring.load(std::memory_order_acquire)) {
@@ -311,54 +311,6 @@ void removeHooks() {
         UnhookWindowsHookEx(keyboardHook);
     }
 }
-
-//int  WINAPI WinMain(HINSTANCE hInstance,
-//    HINSTANCE hPrevInstance,
-//    LPSTR lpCmdLine,
-//    int nCmdShow) {
-//    // 获取主线程 ID
-//    mainThreadId = GetCurrentThreadId();
-//    // 设置进程优先级
-//    setProcessPriority();
-//
-//    // 创建截图线程并加入线程池
-//    pool.enqueue(screenshotThread);
-//
-//    // 创建 AI 推理模块
-//    AIInferenceModule aiInferenceModule;
-//
-//    // 创建 AI 推理线程并加入线程池
-//    pool.enqueue([&aiInferenceModule] { aiInferenceThread(aiInferenceModule); });
-//
-//
-//    //guiModule.start();
-//    udpSender.start();
-//    guiModule.start();
-//
-//    // 设置键鼠钩子
-//    setHooks();
-//    guiModule.hideWindow();
-//    // 消息循环
-//    MSG msg;
-//    while (running && GetMessage(&msg, nullptr, 0, 0)) {
-//        std::cout<< "111 Main thread running: " << running.load() << std::endl;
-//        TranslateMessage(&msg);
-//        DispatchMessage(&msg);
-//    }
-//    std::cout << "Main thread running: " << running.load() << std::endl;
-//
-//    // 移除钩子
-//    removeHooks();
-//
-//    // 停止所有线程
-//    running = false;
-//
-//    // 等待线程池中的所有任务完成
-//    pool.~ThreadPool();
-//
-//    return 0;
-//}
-//
 void checkCUDA() {
     // Initialize CUDA
     cudaError_t cudaStatus = cudaFree(0);
@@ -401,6 +353,64 @@ void checkCUDA() {
     }
 }
 
+
+
+//int  WINAPI WinMain(HINSTANCE hInstance,
+//    HINSTANCE hPrevInstance,
+//    LPSTR lpCmdLine,
+//    int nCmdShow) {
+//    checkCUDA();
+//
+//    try {
+//        loadConfig("./config.json");
+//    }
+//    catch (const std::exception& e) {
+//        std::cerr << "加载配置文件失败: " << e.what() << std::endl;
+//        return EXIT_FAILURE;
+//    }
+//
+//    // 获取主线程 ID
+//    mainThreadId = GetCurrentThreadId();
+//    // 设置进程优先级
+//    setProcessPriority();
+//
+//    // 创建截图线程并加入线程池
+//    pool.enqueue(screenshotThread);
+//
+//    // 创建 AI 推理模块
+//    AIInferenceModule aiInferenceModule;
+//
+//    // 创建 AI 推理线程并加入线程池
+//    pool.enqueue([&aiInferenceModule] { aiInferenceThread(aiInferenceModule); });
+//
+//    //guiModule.start();
+//    udpSender.start();
+//    guiModule.start();
+//
+//    // 设置键鼠钩子
+//    setHooks();
+//    // 消息循环
+//    MSG msg;
+//    while (running && GetMessage(&msg, nullptr, 0, 0)) {
+//        std::cout << "111 Main thread running: " << running.load() << std::endl;
+//        TranslateMessage(&msg);
+//        DispatchMessage(&msg);
+//    }
+//    std::cout << "Main thread running: " << running.load() << std::endl;
+//
+//    // 移除钩子
+//    removeHooks();
+//
+//    // 停止所有线程
+//    running = false;
+//
+//    // 等待线程池中的所有任务完成
+//    pool.~ThreadPool();
+//
+//    return 0;
+//}
+//
+
 void checkONNXRuntime() {
     // Get ONNX Runtime version
     auto version = Ort::GetVersionString();
@@ -410,6 +420,17 @@ void checkONNXRuntime() {
 
 int  main() {
     checkCUDA();
+
+    try {
+		loadConfig("./config.json");
+	}
+	catch (const std::exception& e) {
+		std::cerr << "加载配置文件失败: " << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
+    // 初始化UDP发送器
+    udpSender.setInfo(udp_ip, udp_port);
+
     //checkONNXRuntime();
     // 获取主线程 ID
     mainThreadId = GetCurrentThreadId();

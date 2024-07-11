@@ -3,32 +3,52 @@
 
 #include <string>
 #include <atomic>
+#include <nlohmann/json.hpp> // 需要安装 nlohmann/json 库
+#include <fstream>
 
-// 连续发射子弹数量
-inline int bullet_count = 1;
-
-// 射击范围
-inline int shoot_range = 5;
-
-// 配置UDP发送器
-inline std::string udp_ip = "192.168.8.7"; // 目标设备的IP地址
-inline unsigned short udp_port = 21115;    // 目标设备的端口
-
-// 自瞄强度，可以根据需要调整
-inline float aim_strength = 3.0f;
-
-// 按键2的自瞄强度
-inline float aim_strength2 = 4.0f;
-
+// 配置参数
+inline std::string udp_ip = "192.168.1.7";
+inline int udp_port = 21115;
+inline float aim_strength = 1.0f;
+inline float aim_strength2 = 1.0f;
+inline int bullet_count = 10;
+inline int shoot_range = 10;
 // 是否显示图像
 inline std::atomic<bool> show_image{ true };
-
-// 模型路径
-//inline std::string model_path = "C:/Users/pc/Desktop/yolov10-102.onnx";
-//inline std::string model_path = "C:/Users/pc/Desktop/yolov10n2.onnx";
-//inline std::string model_path = "C:/Users/pc/Desktop/16.onnx";
-//当前目录下的model文件夹的yolov8n.onnx
 inline std::string model_path = "./123.onnx";
-//inline std::string model_path = "C:/Users/pc/PycharmProjects/pythonProject/models/PUBG.onnx";
+
+// 加载配置的函数
+inline void loadConfig(const std::string& configFilePath) {
+    std::ifstream configFile(configFilePath);
+    if (!configFile.is_open()) {
+        throw std::runtime_error("无法打开配置文件: " + configFilePath);
+    }
+
+    nlohmann::json configJson;
+    configFile >> configJson;
+
+    // 读取配置
+    if (configJson.contains("udp_ip")) {
+        udp_ip = configJson["udp_ip"].get<std::string>();
+    }
+    if (configJson.contains("udp_port")) {
+        udp_port = configJson["udp_port"].get<int>();
+    }
+    if (configJson.contains("aim_strength")) {
+        aim_strength = configJson["aim_strength"].get<float>();
+    }
+    if (configJson.contains("aim_strength2")) {
+        aim_strength2 = configJson["aim_strength2"].get<float>();
+    }
+    if (configJson.contains("bullet_count")) {
+        bullet_count = configJson["bullet_count"].get<int>();
+    }
+    if (configJson.contains("shoot_range")) {
+        shoot_range = configJson["shoot_range"].get<int>();
+    }
+    if (configJson.contains("model_path")) {
+        model_path = configJson["model_path"].get<std::string>();
+    }
+}
 
 #endif // GLOBAL_CONFIG_H

@@ -7,9 +7,10 @@
 
 class UDPSender {
 public:
-    UDPSender(const std::string& ip, unsigned short port);
+    UDPSender();
     ~UDPSender();
 
+    void setInfo(const std::string& ip, unsigned short port);
     void start();
     void stop();
     void updatePosition(int x, int y);

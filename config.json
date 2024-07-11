@@ -1,0 +1,9 @@
+{
+  "udp_ip": "192.168.8.7",
+  "udp_port": 21115,
+  "aim_strength": 3.0,
+  "aim_strength2": 4.0,
+  "bullet_count": 1,
+  "shoot_range": 5,
+  "model_path": "./123.onnx"
+}
